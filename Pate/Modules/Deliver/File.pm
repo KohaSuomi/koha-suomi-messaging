@@ -51,22 +51,18 @@ sub WriteiPostArchive {
 
     my $zip = Archive::Zip->new();
 
-    # If the archive already exists, we'll read it first for appending the new files to it
-    # Why would we want to do this? Single zip archive should always only contain one xml and one pdf. No appensing should ever be needed?
-    # if ( -e $stagingdir . '/' . $param{'filename'} ) {
-    #    $zip->read($stagingdir . '/' . $param{'filename'}) == AZ_OK or die localtime . " Can't read existing archive " . $stagingdir . "/" . $param{'filename'} . '.';
-    # }
-
     # Place data inside the archive as files
     $zip->addString ( $param{'pdf'}, $param{'pdfname'} );
     $zip->addString ( $param{'xml'}, $param{'xmlname'} );
 
-    # Create archive or overwrite the old one with the new files appended
+    # If old archive exists with the same name, destroy it 
     if ( -e $stagingdir . '/' . $param{'filename'} ) {
-        $zip->overwrite() == AZ_OK or die localtime . ": Can't add files to " . $stagingdir . '/' . $param{'filename'} . '.';
-    } else {
-        $zip->writeToFileNamed($stagingdir . '/' . $param{'filename'}) == AZ_OK or die localtime . ": Can't create archive " . $stagingdir . '/' . $param{'filename'} . '.';
+        warn localtime . ": Older archive with the same name ". $param{'filename'} . " already exists, overwriting!";
+        unlink $stagingdir . '/' . $param{'filename'};  
     }
+
+    # Create new archive
+    $zip->writeToFileNamed($stagingdir . '/' . $param{'filename'}) == AZ_OK or die localtime . ": Can't create archive " . $stagingdir . '/' . $param{'filename'} . '.';
 }
 
 sub GetTransferConfig {
