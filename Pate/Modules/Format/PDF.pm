@@ -42,7 +42,7 @@ sub toPDF {
                                       height => 297/mm,
                                       line_height => 13,
                                       margin_left => 20/mm,
-                                      margin_top => 30/mm,
+                                      margin_top => 25/mm,
                                       margin_right => 13/mm,
                                       margin_bottom => 20/mm );
 
@@ -66,11 +66,11 @@ sub toPDF {
 
     $pdf->text( $letterdate,
                 x => 112/mm,
-                y => $pdf->height - 27/mm,
+                y => $pdf->height - 25/mm,
                 autoflow => 'on', font_size=>"$font_size");
 
     # Three enters after header (might just as well be part of the header)
-    $pdf->text('', autoflow => 'on', autoflow => 'on', font_size=>"$font_size") for ( 0..3 );
+    $pdf->text(' ', autoflow => 'on', font_size=>"$font_size") for ( 0..6 );
 
     ### RECIPIENT ###
 
@@ -87,14 +87,14 @@ sub toPDF {
     ### CONTENT ###
 
     # Skip reference, insert some enters after the recipient
-    $pdf->text('', autoflow => 'on', autoflow => 'on', font_size=>"$font_size" ) for ( 0..4 );
+    $pdf->text(' ', autoflow => 'on', font_size=>"$font_size" ) for ( 0..3 );
 
     # Main heading for the document + one enter before the actual content
-    $pdf->text($param{'subject'}, autoflow => 'on', autoflow => 'on', font_size=>"$font_size");
-    $pdf->text('', autoflow => 'on', autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($param{'subject'}, autoflow => 'on', font_size=>"$font_size");
+    $pdf->text(' ', autoflow => 'on', font_size=>"$font_size");
 
     # Message body (retain enters). Signatures and such should be in the letter template
-    $pdf->text($_, autoflow => 'on', x => 66/mm, autoflow => 'on', font_size=>"$font_size") for ( split /\n/, $param{'content'} );
+    $pdf->text($_, x => 66/mm, autoflow => 'on', font_size=>"$font_size") for ( split /\n/, $param{'content'} );
 
     # Return the resulting PDF in a scalar as string
     return $pdf->stringify();
