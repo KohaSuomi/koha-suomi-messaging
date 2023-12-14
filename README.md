@@ -48,7 +48,7 @@ ipostpdf/ipostepl ja filetransfers -osat voidaan määritellä toisistaan riippu
   - Eri e-kirjepalveluntarjoajilla voi olla omia vaatimuksiaan tiedostojen kohdehakemiston suhteen.
 - Käyttäjätunnus ja salasana vastaanottavalla palvelimella (user, password).
   - Suomi.fi viesteille nämä saa DVV:lta, iPost-kirjeille kirjepalveluntarjoajalta.
-- Käytettävä tiedonsiirtoprotokolla (protocol), joko sftp tai ftp. *FTP-protokollan kanssa pitää erikseen huolehtia tiedonsiirtoväylän suojaamisesta, koska protokolla sinänsä on suojaamaton ja viesteissä liikkuu luottamuksellisia tietoja.* Älä käytä FTP:tä.
+- Käytettävä tiedonsiirtoprotokolla (protocol), joko sftp tai ftp. FTP-protokollan kanssa pitää erikseen huolehtia tiedonsiirtoväylän suojaamisesta, koska protokolla sinänsä on suojaamaton ja viesteissä liikkuu luottamuksellisia tietoja. Älä käytä FTP:tä.
 
 ### Määrittele yhteys sotu-siiloon koha-conf.xml:n "ssnProvider"-osassa Suomi.fi viestinnälle
 
