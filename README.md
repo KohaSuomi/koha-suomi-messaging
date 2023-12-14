@@ -2,7 +2,7 @@
 
 Tässä dokumentissa on kuvattu lyhyesti KSMessagingin käyttöönotto suomi.fi ja iPost-viestien osalta.
 
-Suomi.fi viestien käyttöönottamiseksi tarvitaan lisäksi sopimukset Väestörekisterikeskuksen (VRK) kanssa sekä tunnukset Valtion Integraatioalustalle (VIA). Tunnukset ja muut tarvittavat tiedot toimittaa VRK sopimuksen teon yhteydessä. Tutustu myös VRK:n Suomi.fi -viestien tekniseen aineistoon osoitteessa: https://esuomi.fi/palveluntarjoajille/viestit/tekninen-aineisto/. Käyttöönoton yhteydessä VRK toimittaa erikseen testausohjeet.
+Suomi.fi viestien käyttöönottamiseksi tarvitaan lisäksi sopimukset Digi- ja väestötietoviraston (DVV) kanssa sekä tunnukset Valtion Integraatioalustalle (VIA). Tunnukset ja muut tarvittavat tiedot toimittaa DVV sopimuksen teon yhteydessä. Tutustu myös DVV:n Suomi.fi -viestien tekniseen aineistoon osoitteessa: https://esuomi.fi/palveluntarjoajille/viestit/tekninen-aineisto/. Käyttöönoton yhteydessä DVV toimittaa erikseen testausohjeet.
 
 iPost-viesteille tarvitaan sopimus e-kirjepalveluntarjoajan kanssa, käytännössä PostiMessagingin tai RopoCapitalin. Paperikirjeitä voidaan lähettää joko iPostPDF tai iPostEPL-formaateissa. PostiMessagingin EPL Design Guide löytyy osoitteesta https://www.opuscapita.com/media/2019867/ipost-epl-design-guide-fi-en.pdf.
 
@@ -20,7 +20,7 @@ ipostpdf/ipostepl ja filetransfers -osat voidaan määritellä toisistaan riippu
 
 - Kirjeiden valmisteluhakemisto (stagingdir), paikallinen hakemisto johon kirjeaineistot muodostetaan ennen niiden siirtämistä valtion integraatiopalveluun tai e-kirjepalveluntarjoajan järjestelmään. Koha-Suomen järjestelmissä tähän käytetään /var/spool/koha/pate-staging -hakemistoa.
   - Huomaa että lähetettyjä tiedostoja ei automaattisesti siivota pois tästä hakemistosta niiden lähetyksen jälkeen, mutta hakemistossa olevia vanhoja tiedostoja ei kuitenkaan tästä huolimatta lähetetä uudelleen. Hakemiston siivous kannattaa ajastaa tapahtuvaksi erikseen.
-- Yhteyshenkilö (contact), sähköpostiosoite, johon a) VIA/VRK ilmoittaa viestien käsittelyssä tapahtuneista virheistä, ja b) e-kirjepalveluntarjoaja toimittaa EPL-sanomien testiviestit silloin kun EPL-asetuksissa on testilippu käytössä. Koha-Suomi -kirjastojen osalta on suositeltavaa käyttää tässä Koha-Suomen notifications -sähköpostia.
+- Yhteyshenkilö (contact), sähköpostiosoite, johon a) VIA/DVV ilmoittaa viestien käsittelyssä tapahtuneista virheistä, ja b) e-kirjepalveluntarjoaja toimittaa EPL-sanomien testiviestit silloin kun EPL-asetuksissa on testilippu käytössä. Koha-Suomi -kirjastojen osalta on suositeltavaa käyttää tässä Koha-Suomen notifications -sähköpostia.
 
 **Kirjastoyksikkö/default-osan sisällä olevassa ipostpdf-osassa määritellään:**
 
@@ -29,7 +29,7 @@ ipostpdf/ipostepl ja filetransfers -osat voidaan määritellä toisistaan riippu
   - Tunnus on kuusinumeroinen asiakastunnus. Suomi.fi:ssä tunnukseksi voidaan asettaa esimerkiksi merkkijono 123456 ja salasana voi olla mitä tahansa silloin kun tulostus- ja kuorituspalvelu suomi.fi -viestien kanssa ei ole käytössä.
 - 12-numeroinen OVT-laskutustunnus (ovtid), joka niinikään on pakollinen, vaikkei kirjeiden lähetystä ja siten myöskään niiden laskutusta tapahtuisikaan. Käytä tässä esimerkiksi kimpan keskuskirjaston OVT-tunnusta.
 - Kuoritus- ja tulostuspalveluntarjoaja (printprovider), edelleen pakollinen, riippumatta siitä kuoritetaanko ja tulostetaanko. Tässä voi olla vaikkapa esimerkkikonfiguraatiotiedoston mukainen "Edita".
-- Lähettäjän tunnus/viranomaistunnus (senderid), tämän saa suomi.fi viestejä varten VRK:lta.
+- Lähettäjän tunnus/viranomaistunnus (senderid), tämän saa suomi.fi viestejä varten DVV:lta.
 - Tiedostotunniste (fileprefix), tiedostonimen alkuun liitettävä aineiston lähettäjän tunniste. Jos tämä on määrittelemättä, käytetään lähettäjän tunnusta. Lähettäjän tunnus ei kuitenkaan toimi tapauksissa, joissa tunnus sisältää _ -merkkejä, koska suomi.fi -viestipalvelu on varsin kranttu tiedostonnimien suhteen. Hyvä kandidaatti tähän on esimerkiksi yksinkertaisesti "koha". Eri e-kirjepalveluntarjoajilla voi olla omia vaatimuksiaan tiedostojen nimeämisen suhteen.
 
 **Kirjastoyksikkö/default-osan sisällä olevassa ipostepl-osassa määritellään:**
@@ -47,7 +47,7 @@ ipostpdf/ipostepl ja filetransfers -osat voidaan määritellä toisistaan riippu
   - Valtion integraatioalusta haluaa viestit hakemistoon to_viestit/ipost, joten oikea asetus suomi.fi-viesteille tähän on "to_viestit/ipost".
   - Eri e-kirjepalveluntarjoajilla voi olla omia vaatimuksiaan tiedostojen kohdehakemiston suhteen.
 - Käyttäjätunnus ja salasana vastaanottavalla palvelimella (user, password).
-  - Suomi.fi viesteille nämä saa VRK:lta, iPost-kirjeille kirjepalveluntarjoajalta.
+  - Suomi.fi viesteille nämä saa DVV:lta, iPost-kirjeille kirjepalveluntarjoajalta.
 - Käytettävä tiedonsiirtoprotokolla (protocol), joko sftp tai ftp. *FTP-protokollan kanssa pitää erikseen huolehtia tiedonsiirtoväylän suojaamisesta, koska protokolla sinänsä on suojaamaton ja viesteissä liikkuu luottamuksellisia tietoja.* Älä käytä FTP:tä.
 
 ### Määrittele yhteys sotu-siiloon koha-conf.xml:n "ssnProvider"-osassa Suomi.fi viestinnälle
@@ -105,7 +105,7 @@ Lisäksi on hyvä ajastaa vanhojen kirjepakettien siivous valmisteluhakemistosta
 - Suomi.fi viestejä varten asiakkaalla tulee olla tili suomi.fi -viestipalvelussa. Tilin voi ottaa käyttöön osoitteessa: https://www.suomi.fi/viestit.
 - Suomi.fi viestejä varten asiakkaan henkilötunnuksen on oltava sotusiilossa ja sen on oltava oikein. Jos asiakkaalla on väärä hetu, päätyvät viestit pahimmassa tapauksessa väärälle henkilölle. Yhteisöille tai hetuttomille viestiminen ei suomi.fi:n kautta onnistu, ja jos tämmöisille asiakkaille kliksii suomi.fi -viestitäppiä, niin tuloksena on "failed" tilaisia viestejä viestijonossa. Tilannetta voisi hieman parantaa tallentamalla Y-tunnukset sellaisille yhteisöasiakkaille, joilla sellainen on. Toistaiseksi Koha-Suomessa ei kuitenkaan ole yhtenäistä käytäntöä tai päätöstä Y-tunnusten tallentamisesta.
 - Suomi.fi viestissä ei näy viestin sisältöä suoraan suomi.fi postilaatikossa. Viestissä näkyy ainoastaan otsikko "Kirjaston nimi, kirjastojen viestit". Viestin sisältönä on "Olet saanut dokumentin suomi.fi -viestipalveluun". Varsinainen viestin sisältö on viestin liitteenä olevassa PDF:ssä. Tämä on suomi.fi ipost-viestipalvelun rajoite, eikä sille ikävä kyllä oikein voi mitään Kohan päässä.
-- Selaimissa PDF-lukuohjelma tulee mukana, mutta mobiililaitteissa pitää olla suomi.fi -sovelluksen lisäksi asennettuna myös PDF-lukuohjelma. Kaikki lukuohjelmat eivät suomi.fi -sovelluksen kanssa tunnu toimivan. Lisäksi avaamisongelmia voi aiheuttaa esimerkiksi mobiililaitteessa käytössä oleva sisällönsuodatus tai VPN-ohjelmisto. Ongelmista on raportoitu VRK:lle.
+- Selaimissa PDF-lukuohjelma tulee mukana, mutta mobiililaitteissa pitää olla suomi.fi -sovelluksen lisäksi asennettuna myös PDF-lukuohjelma. Kaikki lukuohjelmat eivät suomi.fi -sovelluksen kanssa tunnu toimivan. Lisäksi avaamisongelmia voi aiheuttaa esimerkiksi mobiililaitteessa käytössä oleva sisällönsuodatus tai VPN-ohjelmisto. Ongelmista on raportoitu VIA:lle.
 - PDF-dokumenttia on varsin hankala lukea kännykän pieneltä näytöltä. Viesti on taitettu suomi.fi palvelun vaatimusten mukaisesti SFS-2487 standardin kuvaamaa asettelumallia seuraten A4-paperille, jotta kirje voitaisiin toimittaa tarvittaessa eteenpäin paperikirjeenä.
 - Kohasta voidaan lähettää suomi.fi-viesteinä Kohan normaalia viestikanavaa pitkin kulkevat viestit, eli noutoilmoitukset, laina- ja palautuskuitit ja eräpäivämuistutukset. Laskuja tai palautuskehotuksia ei voi lähettää, koska niiden lähetys toimii Kohassa eri tavalla. Ainakin palautuskehotusten lähetyksen yhdenmukaistaminen muiden Kohan viestityyppien kanssa olisi hyvä seuraava askel ja mahdollistaisi myös palautuskehotusten toimittamisen asiakkaan valitsemalla tavalla.
 
