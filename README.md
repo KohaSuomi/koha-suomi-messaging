@@ -69,7 +69,7 @@ Suomi.fi -viestintä nojaa henkilötunnuksiin, joten suomi.fi viestejä varten t
 - Lisää sotu-siiloon user-tauluun käyttäjä, jolla on oikeus hakea sotuja siilosta.
 - Lisää koha-conf.xml:n ssnProvider-osan alle findSSN-osa ja määrittele sen alle siiloon lisäämäsi käyttäjätunnus (user) ja salasana (password).
 
-### Ajasta viestien lähetys.
+### Ajasta viestien lähetys
 
 pate.pl -skriptin kannattaa symlinkkata cronjobs-hakemistoon:
 
