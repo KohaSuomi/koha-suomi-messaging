@@ -41,8 +41,13 @@ sub find_branchconfig {
     return "default";
 }
 
+unless (C4::Context->config('ksmessaging')) {
+    print STDERR "No configuration found for ksmessaging.\n";
+    exit 1;
+}
+
 unless ( $ARGV[0] ) {
-    print "\nSelect either '--letters' or '--suomifi'.\n" unless ( $ARGV[0] );
+    print "\nSelect either '--letters', '--letters-as-suomifi' or '--suomifi'.\n" unless ( $ARGV[0] );
 }
 
 elsif ( $ARGV[0] eq '--suomifi' ) {
@@ -87,96 +92,9 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
                                                      status     => 'failed' } );
                 $undelivered++;
             }
-        }
-
-        elsif ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'} ) {
-
-            my $senderid;
-            $senderid=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'}
-              if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'} );
-
-            die "Mandatory parameter senderid is not set for branch." unless ( $senderid );
-
-            # Set fileprefix same as senderid or override if prefix is set in config
-            my $fileprefix=$senderid;
-            $fileprefix=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'fileprefix'}
-              if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'fileprefix'} );
-
-            # Define filename
-            $filename = $fileprefix . "_";
-
-            # Run time backwards to make suomi.fi happy with our filenames
-            $pseudotime--;
-            $filename .= strftime( "%Y%m%d%H%M%S", localtime($pseudotime) );
-
-            $filename .= '_' . C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'}
-              if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'} );
-
-            $filename .= ".zip";
-
-            my $pdfname = @$message{'message_id'} . '.pdf';
-            #my $formattedmessage = setMediaboxByPage ( toPDF ( %{$message} ) );
-            my $formattedmessage = toPDF ( %{$message} );
-            my $dispatch = @$message{'message_id'} . '.xml';
-
-            my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-            my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} );
-
-            unless ( $ssn ) {
-                print STDERR "Can't generate message @$message{'message_id'} for borrower @$message{'borrowernumber'}, no SSN available?\n";
-
-                C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
-                                                     status     => 'failed' } );
-                $undelivered++;
-                next;
-            }
-
-            my $dispatchXML = DispatchXML ( 'interface'      => 'suomifi',
-                                            'borrowernumber' => @$message{'borrowernumber'},
-                                            'SSN'            => $ssn,
-                                            'filename'       => $pdfname,
-                                            'branchconfig'   => $branchconfig,
-                                            'letterid'       => @$message{'message_id'},
-                                            'subject'        => @$message{'subject'},
-                                            'totalpages'     => getNumberOfPages($formattedmessage) );
-
-            # Debug
-            if ( $ENV{'DEBUG'} && $ENV{'DEBUG'} == 1 ) {
-                print STDERR "\n=== Message " . @$message{'message_id'} . " handled for branch 'default', binary format (PDF) only dispatch data shown ===\n\n";
-                print STDERR $dispatchXML;
-            }
-
-            # Put files in an iPostPDF archive
-            WriteiPostArchive ( 'interface'    => 'suomifi',
-                                'pdf'          => $formattedmessage,
-                                'xml'          => $dispatchXML,
-                                'pdfname'      => $pdfname,
-                                'xmlname'      => $dispatch,
-                                'branchconfig' => $branchconfig,
-                                'filename'     => $filename );
-
-
-            # Select file transfer configuration for branch or default
-            $branchconfig = 'default';
-            $branchconfig = @$message{'branchcode'} if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"@$message{'branchcode'}"}->{'filetransfer'} );
-
-            print STDERR "\n=== Transferring with '$branchconfig' configuration ===\n" if $ENV{'DEBUG'};
-
-            if ( FileTransfer ( 'interface' => 'suomifi', 'branchconfig' => "$branchconfig", 'filename' => "$filename" ) ) {
-                C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
-                                                     status     => 'sent' } );
-                print STDERR "File transfer completed.\n";
-            }
-            else {
-                C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
-                                                     status     => 'failed' } );
-                print STDERR "File transfer failed.\n";
-                $undelivered++;
-            }
-
-        }
-
-        else {
+        } elsif ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'} ) {
+            process_suomifi_letters($message, $branchconfig);
+        } else {
              print STDERR "No suomi.fi message created for message " . @$message{'message_id'}. ". The format for the branch is not configured.\n";
 
              C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
@@ -190,7 +108,40 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
     }
 
 }
+elsif ($ARGV[0] eq '--letters-as-suomifi') {
+    print STDERR "Staging letters as Suomi.fi messages...\n";
 
+    foreach my $message ( @{ GetPrintMessages() } ) {
+        # Skip defined letter_codes from the process
+        if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
+            my $skipletter = 0;
+            my @skip = split(',', C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'});
+            foreach my $skip (@skip) {
+                if (@$message{'letter_code'} eq $skip) {
+                    $skipletter = 1;
+                    last;
+                }
+            }
+            next if $skipletter;
+        }
+        $letters++;
+
+        my $branchconfig = find_branchconfig('suomifi', $message);
+
+        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'} ) {
+            process_suomifi_letters($message, $branchconfig);
+        } else {
+            print STDERR "No suomi.fi message created for message " . @$message{'message_id'}. ". The format for the branch is not configured.\n";
+
+            C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
+                                                 status     => 'failed' } );
+
+            # We'll consider this non-fatal and keep on going with other messages
+            $undelivered++;
+            next;
+        }
+    }
+}
 elsif ( $ARGV[0] eq '--letters' ) {
     print STDERR "Staging letters...\n";
 
@@ -301,3 +252,84 @@ elsif ( $ARGV[0] eq '--letters' ) {
 print STDERR "\n" . $letters . " messages processed, " . $undelivered . " undelivered.\n";
 exit 0 if $undelivered > 0;
 exit 1;
+
+sub process_suomifi_letters {
+    my $message = shift;
+    my $branchconfig = shift;
+
+    my $senderid;
+    $senderid=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'}
+        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'} );
+
+    die "Mandatory parameter senderid is not set for branch." unless ( $senderid );
+
+    # Set fileprefix same as senderid or override if prefix is set in config
+    my $fileprefix=$senderid;
+    $fileprefix=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'fileprefix'}
+        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'fileprefix'} );
+
+    # Define filename
+    $filename = $fileprefix . "_";
+
+    # Run time backwards to make suomi.fi happy with our filenames
+    $pseudotime--;
+    $filename .= strftime( "%Y%m%d%H%M%S", localtime($pseudotime) );
+
+    $filename .= '_' . C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'}
+        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'} );
+
+    my $pdfname = @$message{'message_id'} . '.pdf';
+    #my $formattedmessage = setMediaboxByPage ( toPDF ( %{$message} ) );
+    my $formattedmessage = toPDF ( %{$message} );
+    my $dispatch = @$message{'message_id'} . '.xml';
+
+    my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
+    my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} );
+
+    unless ( $ssn ) {
+        $filename .= "_suoratulostus";
+    }
+    $filename .= ".zip";
+    my $dispatchXML = DispatchXML ( 'interface'      => 'suomifi',
+                                    'borrowernumber' => @$message{'borrowernumber'},
+                                    'SSN'            => $ssn || 'N/A', # 'N/A' is a placeholder for 'no SSN available
+                                    'filename'       => $pdfname,
+                                    'branchconfig'   => $branchconfig,
+                                    'letterid'       => @$message{'message_id'},
+                                    'subject'        => @$message{'subject'},
+                                    'totalpages'     => getNumberOfPages($formattedmessage) );
+
+    # Debug
+    if ( $ENV{'DEBUG'} && $ENV{'DEBUG'} == 1 ) {
+        print STDERR "\n=== Message " . @$message{'message_id'} . " handled for branch 'default', binary format (PDF) only dispatch data shown ===\n\n";
+        print STDERR $dispatchXML;
+    }
+
+    # Put files in an iPostPDF archive
+    WriteiPostArchive ( 'interface'    => 'suomifi',
+                        'pdf'          => $formattedmessage,
+                        'xml'          => $dispatchXML,
+                        'pdfname'      => $pdfname,
+                        'xmlname'      => $dispatch,
+                        'branchconfig' => $branchconfig,
+                        'filename'     => $filename );
+
+
+    # Select file transfer configuration for branch or default
+    $branchconfig = 'default';
+    $branchconfig = @$message{'branchcode'} if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"@$message{'branchcode'}"}->{'filetransfer'} );
+
+    print STDERR "\n=== Transferring with '$branchconfig' configuration ===\n" if $ENV{'DEBUG'};
+
+    if ( FileTransfer ( 'interface' => 'suomifi', 'branchconfig' => "$branchconfig", 'filename' => "$filename" ) ) {
+        C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
+                                                status     => 'sent' } );
+        print STDERR "File transfer completed.\n";
+    }
+    else {
+        C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
+                                                status     => 'failed' } );
+        print STDERR "File transfer failed.\n";
+        $undelivered++;
+    }
+}
