@@ -8,7 +8,6 @@ use Koha::Patrons;
 use Encode;
 use XML::Simple;
 use HTML::Template;
-use FindBin qw($RealBin);
 
 sub GetDispatcherConfig {
     my %param = @_;
@@ -27,8 +26,7 @@ sub DispatchXML {
     my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
 
     #my $templateDir = C4::Context->config( 'intranetdir' ) . '/C4/KohaSuomi/Pate/Templates/';
-    #my $templateDir = '/home/koha/koha-suomi-messaging/Pate/Templates/'; # This cannot be harcoded, FIXME:
-    my $templateDir = "$RealBin/../Templates/";
+    my $templateDir = '/home/koha/koha-suomi-messaging/Pate/Templates/'; # This cannot be harcoded, FIXME:
     # my $templateDir = C4::Context->config('ksmessaging')->{'templatedir'};
     my $xmlTemplate = HTML::Template->new( filename => $templateDir . 'DispatchXML.tmpl' );
 
