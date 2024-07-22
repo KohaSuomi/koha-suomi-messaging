@@ -8,6 +8,7 @@ use POSIX qw ( strftime );
 
 use C4::Letters qw ( GetPrintMessages GetSuomiFiMessages );
 use C4::Context;
+use Try::Tiny;
 
 use Pate::Modules::Format::PDF;
 use Pate::Modules::Format::EPL;
@@ -16,6 +17,7 @@ use Pate::Modules::Format::SuomiFi;
 use Pate::Modules::Deliver::SOAP;
 use Pate::Modules::Deliver::DispatchXML;
 use Pate::Modules::Deliver::File;
+use Pate::Modules::Deliver::REST;
 
 use Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database;
 
@@ -47,7 +49,7 @@ unless (C4::Context->config('ksmessaging')) {
 }
 
 unless ( $ARGV[0] ) {
-    print "\nSelect either '--letters', '--letters-as-suomifi' or '--suomifi'.\n" unless ( $ARGV[0] );
+    print "\nSelect either '--letters', '--letters-as-suomifi', '--suomifi-rest' or '--suomifi'.\n" unless ( $ARGV[0] );
 }
 
 elsif ( $ARGV[0] eq '--suomifi' ) {
@@ -140,6 +142,53 @@ elsif ($ARGV[0] eq '--letters-as-suomifi') {
             $undelivered++;
             next;
         }
+    }
+}
+elsif ($ARGV[0] eq '--suomifi-rest') {
+    print STDERR "Staging letters as Suomi.fi REST messages...\n";
+    
+    foreach my $message ( @{ GetPrintMessages() } ) {
+        # Skip defined letter_codes from the process
+        if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
+            my $skipletter = 0;
+            my @skip = split(',', C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'});
+            foreach my $skip (@skip) {
+                if (@$message{'letter_code'} eq $skip) {
+                    $skipletter = 1;
+                    last;
+                }
+            }
+            next if $skipletter;
+        }
+        $letters++;
+
+        my $branchconfig = find_branchconfig('suomifi', $message);
+        my $config = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'rest'};
+        #my $stagingdir = C4::Context->config('ksmessaging')->{"$param{'interface'}"}->{'branches'}->{"$param{'branchconfig'}"}->{'stagingdir'};
+        try {
+            # Use this when the expiration time is set in the configuration
+            # my $cache = Koha::Caches->get_instance();
+            # my $cache_key = "suomifi'.$branchconfig";
+            # my $accessToken = $cache->get_from_cache($cache_key, { unsafe => 1 });
+
+            # unless ($accessToken) {
+            #     $accessToken = Pate::Modules::Deliver::REST->new({baseUrl => $branchconfig->{baseUrl}})->fetchAccessToken('/v1/token', 'application/json', {password => $branchconfig->{password}, username => $branchconfig->{username}});
+            #     $cache->set_in_cache($cache_key, $accessToken);
+            # }
+            my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $config->{baseUrl}});
+            my $accessToken = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $config->{password}, username => $config->{username}});
+            my $file = create_letter($message, $branchconfig);
+            $file = $stagingdir . '/' . $file;
+            my $fileResponse = $restClass->send('/v1/files', 'multipart/form-data', $accessToken->{accessToken}, {file => [$file]});
+            my $messageData = RESTMessage(%{$message}, 'branchconfig' => $branchconfig, 'file_id' => $fileResponse->{fileId});
+            my $response = $restClass->send('/v1/messages', 'application/json', $accessToken->{accessToken}, $messageData);
+            C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'sent' } );
+            print STDERR "Message sent successfully.\n";
+        } catch {
+            print STDERR "Failed to send message @$message{'message_id'} for borrower @$message{'borrowernumber'}: $_\n";
+                C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'failed' } );
+                $undelivered++;
+        };
     }
 }
 elsif ( $ARGV[0] eq '--letters' ) {
@@ -257,6 +306,31 @@ sub process_suomifi_letters {
     my $message = shift;
     my $branchconfig = shift;
 
+    my $filename = create_letter($message, $branchconfig);
+
+    # Select file transfer configuration for branch or default
+    $branchconfig = 'default';
+    $branchconfig = @$message{'branchcode'} if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"@$message{'branchcode'}"}->{'filetransfer'} );
+
+    print STDERR "\n=== Transferring with '$branchconfig' configuration ===\n" if $ENV{'DEBUG'};
+
+    if ( FileTransfer ( 'interface' => 'suomifi', 'branchconfig' => "$branchconfig", 'filename' => "$filename" ) ) {
+        C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
+                                                status     => 'sent' } );
+        print STDERR "File transfer completed.\n";
+    }
+    else {
+        C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
+                                                status     => 'failed' } );
+        print STDERR "File transfer failed.\n";
+        $undelivered++;
+    }
+}
+
+sub create_letter {
+    my $message = shift;
+    my $branchconfig = shift;
+
     my $senderid;
     $senderid=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'}
         if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'} );
@@ -314,22 +388,5 @@ sub process_suomifi_letters {
                         'branchconfig' => $branchconfig,
                         'filename'     => $filename );
 
-
-    # Select file transfer configuration for branch or default
-    $branchconfig = 'default';
-    $branchconfig = @$message{'branchcode'} if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"@$message{'branchcode'}"}->{'filetransfer'} );
-
-    print STDERR "\n=== Transferring with '$branchconfig' configuration ===\n" if $ENV{'DEBUG'};
-
-    if ( FileTransfer ( 'interface' => 'suomifi', 'branchconfig' => "$branchconfig", 'filename' => "$filename" ) ) {
-        C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
-                                                status     => 'sent' } );
-        print STDERR "File transfer completed.\n";
-    }
-    else {
-        C4::Letters::_set_message_status ( { message_id => @$message{'message_id'},
-                                                status     => 'failed' } );
-        print STDERR "File transfer failed.\n";
-        $undelivered++;
-    }
+    return $filename;
 }
