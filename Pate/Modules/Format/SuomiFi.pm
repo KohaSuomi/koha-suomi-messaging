@@ -8,6 +8,7 @@ use C4::Context;
 use XML::Simple;
 use HTML::Template;
 use MIME::Base64;
+use JSON;
 
 use Koha::Patrons;
 use Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database;
@@ -84,4 +85,64 @@ sub SOAPEnvelope {
 
     return $xmlTemplate->output;
 }
+
+sub RESTMessage {
+    my %param = @_;
+
+    my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
+    my $branch = Koha::Libraries->find( $param{'branchcode'} );
+    my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
+    my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} );
+
+    my $format_json = {
+        externalId => $param{'message_id'},
+        sender => {
+            serviceId => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'rest'}->{'serviceid'},
+        },
+        recipient => {
+            id => $id || ''
+        },
+        'paperMail' => {
+            sender => {
+                address => {
+                    name => $branch->branchname,
+                    streetAddress => $branch->branchaddress1,
+                    zipCode => $branch->branchzip,
+                    city => $branch->branchcity,
+                    countryCode => $branch->branchcountry
+                }
+            },
+            recipient => {
+                address => {
+                    name => $borrower->firstname . ' ' . $borrower->surname,
+                    streetAddress => $borrower->address,
+                    zipCode => $borrower->zipcode,
+                    city => $borrower->city,
+                    countryCode => $borrower->country
+                }
+            },
+            printingAndEnvelopingService => {
+                postiMessaging => {
+                    contactDetails => {
+                        email => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'contact'},
+                    },
+                    username => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerid'},
+                    password => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerpass'},
+                }
+            },
+            files => [
+                {
+                    fileId => $param{'file_id'}
+                }
+            ]
+        },
+        electronic => {
+            title => $param{'subject'},
+            body => $param{'content'},
+        }
+    };
+    
+    return to_json ( $format_json );
+}
+
 1;
