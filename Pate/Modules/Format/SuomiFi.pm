@@ -94,55 +94,57 @@ sub RESTMessage {
     my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
     my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} );
 
-    my $format_json = {
-        externalId => $param{'message_id'},
+    my $paperMail = {
         sender => {
-            serviceId => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'rest'}->{'serviceid'},
+            address => {
+                name => $branch->branchname,
+                streetAddress => $branch->branchaddress1,
+                zipCode => $branch->branchzip,
+                city => $branch->branchcity,
+                countryCode => $branch->branchcountry
+            }
         },
         recipient => {
-            id => $id || ''
+            address => {
+                name => $borrower->firstname . ' ' . $borrower->surname,
+                streetAddress => $borrower->address,
+                zipCode => $borrower->zipcode,
+                city => $borrower->city,
+                countryCode => $borrower->country
+            }
         },
-        'paperMail' => {
-            sender => {
-                address => {
-                    name => $branch->branchname,
-                    streetAddress => $branch->branchaddress1,
-                    zipCode => $branch->branchzip,
-                    city => $branch->branchcity,
-                    countryCode => $branch->branchcountry
-                }
-            },
-            recipient => {
-                address => {
-                    name => $borrower->firstname . ' ' . $borrower->surname,
-                    streetAddress => $borrower->address,
-                    zipCode => $borrower->zipcode,
-                    city => $borrower->city,
-                    countryCode => $borrower->country
-                }
-            },
-            printingAndEnvelopingService => {
-                postiMessaging => {
-                    contactDetails => {
-                        email => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'contact'},
-                    },
-                    username => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerid'},
-                    password => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerpass'},
-                }
-            },
-            files => [
-                {
-                    fileId => $param{'file_id'}
-                }
-            ]
+        printingAndEnvelopingService => {
+            postiMessaging => {
+                contactDetails => {
+                    email => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'contact'},
+                },
+                username => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerid'},
+                password => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerpass'},
+            }
         },
-        electronic => {
-            title => $param{'subject'},
-            body => $param{'content'},
-        }
+        files => [
+            {
+                fileId => $param{'file_id'}
+            }
+        ]
     };
+
+    my $format_message;
+
+    if ($id) {
+        $format_message->{sender}->{serviceId} = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'rest'}->{'serviceid'},
+        $format_message->{recipient}->{id} = $id;
+        $format_message->{'paperMail'} = $paperMail;
+        $format_message->{electronic}->{title} = $param{'subject'};
+        $format_message->{electronic}->{body} = $param{'content'};
+    } else {
+        $format_message = $paperMail;
+        $format_message->{sender}->{serviceId} = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'rest'}->{'serviceid'},
+    }
+
+    $format_message->{externalId} = $param{'message_id'};
     
-    return to_json ( $format_json );
+    return $format_message;
 }
 
 1;
