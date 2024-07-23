@@ -171,7 +171,7 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
             my $accessToken = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $config->{password}, username => $config->{username}});
             my $file = create_letter($message, $branchconfig);
             $file = $stagingdir . '/' . $file;
-            my $fileResponse;# = $restClass->send('/v1/files', 'multipart/form-data', $accessToken->{accessToken}, {file => [$file]});
+            my $fileResponse = $restClass->send('/v1/files', 'multipart/form-data', $accessToken->{accessToken}, {file => [$file]});
             my $messageData = RESTMessage(%{$message}, 'branchconfig' => $branchconfig, 'file_id' => $fileResponse->{fileId});
             my $response;
             if ($messageData->{recipient}->{id}) {
@@ -182,8 +182,9 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
             C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'sent' } );
             print STDERR "Message @$message{'message_id'} sent successfully.\n" if $ENV{'DEBUG'};
         } catch {
-            print STDERR "Failed to send message @$message{'message_id'} for borrower @$message{'borrowernumber'}: $_\n";
-                C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'failed' } );
+            my $error = $_;
+            print STDERR "Failed to send message @$message{'message_id'} for borrower @$message{'borrowernumber'}: $error\n";
+                C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'failed', failure_code => $error} );
                 $undelivered++;
         };
     }
