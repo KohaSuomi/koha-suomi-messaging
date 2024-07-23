@@ -150,22 +150,15 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
     foreach my $message ( @{ GetPrintMessages() } ) {
         # Skip defined letter_codes from the process
         if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
-            my $skipletter = 0;
-            my @skip = split(',', C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'});
-            foreach my $skip (@skip) {
-                if (@$message{'letter_code'} eq $skip) {
-                    $skipletter = 1;
-                    last;
-                }
-            }
-            next if $skipletter;
+            next if skip_letters($message);
         }
         $letters++;
 
         my $branchconfig = find_branchconfig('suomifi', $message);
         my $config = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'rest'};
-        #my $stagingdir = C4::Context->config('ksmessaging')->{"$param{'interface'}"}->{'branches'}->{"$param{'branchconfig'}"}->{'stagingdir'};
+        my $stagingdir = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'stagingdir'};
         try {
+            my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $config->{baseUrl}});
             # Use this when the expiration time is set in the configuration
             # my $cache = Koha::Caches->get_instance();
             # my $cache_key = "suomifi'.$branchconfig";
@@ -175,15 +168,19 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
             #     $accessToken = Pate::Modules::Deliver::REST->new({baseUrl => $branchconfig->{baseUrl}})->fetchAccessToken('/v1/token', 'application/json', {password => $branchconfig->{password}, username => $branchconfig->{username}});
             #     $cache->set_in_cache($cache_key, $accessToken);
             # }
-            my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $config->{baseUrl}});
             my $accessToken = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $config->{password}, username => $config->{username}});
             my $file = create_letter($message, $branchconfig);
             $file = $stagingdir . '/' . $file;
-            my $fileResponse = $restClass->send('/v1/files', 'multipart/form-data', $accessToken->{accessToken}, {file => [$file]});
+            my $fileResponse;# = $restClass->send('/v1/files', 'multipart/form-data', $accessToken->{accessToken}, {file => [$file]});
             my $messageData = RESTMessage(%{$message}, 'branchconfig' => $branchconfig, 'file_id' => $fileResponse->{fileId});
-            my $response = $restClass->send('/v1/messages', 'application/json', $accessToken->{accessToken}, $messageData);
+            my $response;
+            if ($messageData->{recipient}->{id}) {
+                $response = $restClass->send('/v1/messages', 'application/json', $accessToken->{accessToken}, $messageData);
+            } else {
+                $response = $restClass->send('/v1/paper-mail-without-id', 'application/json', $accessToken->{accessToken}, $messageData);
+            }
             C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'sent' } );
-            print STDERR "Message sent successfully.\n";
+            print STDERR "Message @$message{'message_id'} sent successfully.\n" if $ENV{'DEBUG'};
         } catch {
             print STDERR "Failed to send message @$message{'message_id'} for borrower @$message{'borrowernumber'}: $_\n";
                 C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'failed' } );
@@ -389,4 +386,17 @@ sub create_letter {
                         'filename'     => $filename );
 
     return $filename;
+}
+
+sub skip_letters {
+    my $message = shift;
+    my $skipletter = 0;
+    my @skip = split(',', C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'});
+    foreach my $skip (@skip) {
+        if (@$message{'letter_code'} eq $skip) {
+            $skipletter = 1;
+            last;
+        }
+    }
+    return $skipletter;
 }
