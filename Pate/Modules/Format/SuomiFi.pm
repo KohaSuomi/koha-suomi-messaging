@@ -14,6 +14,7 @@ use Koha::Patrons;
 use Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database;
 
 use Pate::Modules::Format::PDF;
+use Pate::Modules::Config;
 
 sub FormatDescription {
     my $description =  shift;
@@ -95,13 +96,14 @@ sub RESTMessage {
     my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} );
 
     my $paperMail = {
+        'createCoverPage' => JSON::true,
         sender => {
             address => {
                 name => $branch->branchname,
                 streetAddress => $branch->branchaddress1,
                 zipCode => $branch->branchzip,
                 city => $branch->branchcity,
-                countryCode => $branch->branchcountry
+                countryCode => Pate::Modules::Config->countryCode( $branch->branchcountry )
             }
         },
         recipient => {
@@ -110,7 +112,7 @@ sub RESTMessage {
                 streetAddress => $borrower->address,
                 zipCode => $borrower->zipcode,
                 city => $borrower->city,
-                countryCode => $borrower->country
+                countryCode => Pate::Modules::Config->countryCode( $borrower->country )
             }
         },
         printingAndEnvelopingService => {
