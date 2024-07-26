@@ -159,25 +159,30 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
         my $stagingdir = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'stagingdir'};
         try {
             my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $config->{baseUrl}});
-            # Use this when the expiration time is set in the configuration
-            # my $cache = Koha::Caches->get_instance();
-            # my $cache_key = "suomifi'.$branchconfig";
-            # my $accessToken = $cache->get_from_cache($cache_key, { unsafe => 1 });
+            my $cache = Koha::Caches->get_instance();
+            my $cache_key = "suomifi-".$branchconfig."-token";
+            my $accessToken = $cache->get_from_cache($cache_key);
 
-            # unless ($accessToken) {
-            #     $accessToken = Pate::Modules::Deliver::REST->new({baseUrl => $branchconfig->{baseUrl}})->fetchAccessToken('/v1/token', 'application/json', {password => $branchconfig->{password}, username => $branchconfig->{username}});
-            #     $cache->set_in_cache($cache_key, $accessToken);
-            # }
-            my $accessToken = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $config->{password}, username => $config->{username}});
-            my $file = create_letter($message, $branchconfig);
+            unless ($accessToken) {
+                print "Fetching access token\n";
+                my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $config->{password}, username => $config->{username}});
+                $accessToken = $tokenResponse->{accessToken};
+                #Token should expire in 1 hour, but we'll give it 5 seconds less to be sure
+                $cache->set_in_cache($cache_key, $accessToken, { expiry => 3600 - 5 });
+            }
+
+            my $file = create_letter($message, $branchconfig, 1);
             $file = $stagingdir . '/' . $file;
-            my $fileResponse = $restClass->send('/v1/files', 'multipart/form-data', $accessToken->{accessToken}, {file => [$file]});
+            print "Sending file $file\n";
+            my $fileResponse = $restClass->send('/v1/files', 'form-data', $accessToken, $file);
+            print "Creating message\n";
             my $messageData = RESTMessage(%{$message}, 'branchconfig' => $branchconfig, 'file_id' => $fileResponse->{fileId});
             my $response;
+            print "Sending message\n";
             if ($messageData->{recipient}->{id}) {
-                $response = $restClass->send('/v1/messages', 'application/json', $accessToken->{accessToken}, $messageData);
+                $response = $restClass->send('/v1/messages', 'application/json', $accessToken, $messageData);
             } else {
-                $response = $restClass->send('/v1/paper-mail-without-id', 'application/json', $accessToken->{accessToken}, $messageData);
+                $response = $restClass->send('/v1/paper-mail-without-id', 'application/json', $accessToken, $messageData);
             }
             C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'sent' } );
             print STDERR "Message @$message{'message_id'} sent successfully.\n" if $ENV{'DEBUG'};
@@ -328,6 +333,7 @@ sub process_suomifi_letters {
 sub create_letter {
     my $message = shift;
     my $branchconfig = shift;
+    my $writeonlypdf = shift; 
 
     my $senderid;
     $senderid=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'}
@@ -351,40 +357,46 @@ sub create_letter {
         if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'} );
 
     my $pdfname = @$message{'message_id'} . '.pdf';
-    #my $formattedmessage = setMediaboxByPage ( toPDF ( %{$message} ) );
-    my $formattedmessage = toPDF ( %{$message} );
-    my $dispatch = @$message{'message_id'} . '.xml';
+    if ($writeonlypdf) {
+        $filename .= ".pdf";
+        WriteiPostPDF ( 'interface'    => 'suomifi', 'branchconfig' => $branchconfig, 'pdf' => toPDF ( %{$message} ), 'filename' => $filename );
+    } else {
 
-    my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-    my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} );
+        #my $formattedmessage = setMediaboxByPage ( toPDF ( %{$message} ) );
+        my $formattedmessage = toPDF ( %{$message} );
+        my $dispatch = @$message{'message_id'} . '.xml';
 
-    unless ( $ssn ) {
-        $filename .= "_suoratulostus";
+        my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
+        my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} );
+
+        unless ( $ssn ) {
+            $filename .= "_suoratulostus";
+        }
+        $filename .= ".zip";
+        my $dispatchXML = DispatchXML ( 'interface'      => 'suomifi',
+                                        'borrowernumber' => @$message{'borrowernumber'},
+                                        'SSN'            => $ssn || 'N/A', # 'N/A' is a placeholder for 'no SSN available
+                                        'filename'       => $pdfname,
+                                        'branchconfig'   => $branchconfig,
+                                        'letterid'       => @$message{'message_id'},
+                                        'subject'        => @$message{'subject'},
+                                        'totalpages'     => getNumberOfPages($formattedmessage) );
+
+        # Debug
+        if ( $ENV{'DEBUG'} && $ENV{'DEBUG'} == 1 ) {
+            print STDERR "\n=== Message " . @$message{'message_id'} . " handled for branch 'default', binary format (PDF) only dispatch data shown ===\n\n";
+            print STDERR $dispatchXML;
+        }
+
+        # Put files in an iPostPDF archive
+        WriteiPostArchive ( 'interface'    => 'suomifi',
+                            'pdf'          => $formattedmessage,
+                            'xml'          => $dispatchXML,
+                            'pdfname'      => $pdfname,
+                            'xmlname'      => $dispatch,
+                            'branchconfig' => $branchconfig,
+                            'filename'     => $filename );
     }
-    $filename .= ".zip";
-    my $dispatchXML = DispatchXML ( 'interface'      => 'suomifi',
-                                    'borrowernumber' => @$message{'borrowernumber'},
-                                    'SSN'            => $ssn || 'N/A', # 'N/A' is a placeholder for 'no SSN available
-                                    'filename'       => $pdfname,
-                                    'branchconfig'   => $branchconfig,
-                                    'letterid'       => @$message{'message_id'},
-                                    'subject'        => @$message{'subject'},
-                                    'totalpages'     => getNumberOfPages($formattedmessage) );
-
-    # Debug
-    if ( $ENV{'DEBUG'} && $ENV{'DEBUG'} == 1 ) {
-        print STDERR "\n=== Message " . @$message{'message_id'} . " handled for branch 'default', binary format (PDF) only dispatch data shown ===\n\n";
-        print STDERR $dispatchXML;
-    }
-
-    # Put files in an iPostPDF archive
-    WriteiPostArchive ( 'interface'    => 'suomifi',
-                        'pdf'          => $formattedmessage,
-                        'xml'          => $dispatchXML,
-                        'pdfname'      => $pdfname,
-                        'xmlname'      => $dispatch,
-                        'branchconfig' => $branchconfig,
-                        'filename'     => $filename );
 
     return $filename;
 }
