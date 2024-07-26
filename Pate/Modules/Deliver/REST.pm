@@ -4,7 +4,7 @@ use strict;
 use utf8;
 
 use LWP::UserAgent;
-use HTTP::Request;
+use HTTP::Request::Common qw( POST );
 use JSON;
 
 sub new {
@@ -41,12 +41,11 @@ sub fetchAccessToken {
     my ($self, $endpoint, $contentType, $content) = @_;
     my $ua = $self->ua;
     my $baseUrl = $self->baseUrl;
-    my $req = HTTP::Request->new(POST => $baseUrl.$endpoint);
-    $req->header('Content-Type' => $contentType);
-    if ($contentType eq 'application/json') {
-        $content = encode_json($content);
-    }
-    $req->content($content);
+    my $req = POST(
+        $baseUrl.$endpoint, 
+        Content_Type => $contentType,
+        Content => encode_json($content) 
+    );
     my $res = $ua->request($req);
     if ($res->is_success) {
         return decode_json($res->content);
@@ -65,20 +64,26 @@ sub send {
     my ($self, $endpoint, $contentType, $accessToken, $content) = @_;
     my $ua = $self->ua;
     my $baseUrl = $self->baseUrl;
-    my $req = HTTP::Request->new(POST => $baseUrl.$endpoint);
-    $req->header('Authorization' => 'Bearer '.$accessToken);
-    $req->header('Content-Type' => $contentType);
 
     if ($contentType eq 'application/json') {
         $content = encode_json($content);
     }
-
-    $req->content($content);
+    if ($contentType eq 'form-data') {
+        $content = [ file => [$content] ];
+    }
+    my $req = POST(
+        $baseUrl.$endpoint, 
+        Authorization => 'Bearer '.$accessToken, 
+        Content_Type => $contentType, 
+        Content => $content
+    );
+    print $req->as_string;
     my $res = $ua->request($req);
     if ($res->is_success) {
         my $json = decode_json($res->content);
         return $json;
     } else {
+        print Data::Dumper::Dumper($res->content);
         die $res->status_line;
     }
 }
