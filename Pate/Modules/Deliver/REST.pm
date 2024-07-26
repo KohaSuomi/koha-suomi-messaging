@@ -50,6 +50,7 @@ sub fetchAccessToken {
     if ($res->is_success) {
         return decode_json($res->content);
     } else {
+        print "Error: ". $res->content . "\n";
         die $res->status_line;
     }
 }
@@ -77,13 +78,13 @@ sub send {
         Content_Type => $contentType, 
         Content => $content
     );
-    print $req->as_string;
+
     my $res = $ua->request($req);
     if ($res->is_success) {
         my $json = decode_json($res->content);
         return $json;
     } else {
-        print Data::Dumper::Dumper($res->content);
+        print "Error: ". $res->content . "\n";
         die $res->status_line;
     }
 }
