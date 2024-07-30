@@ -19,6 +19,8 @@ use Pate::Modules::Deliver::DispatchXML;
 use Pate::Modules::Deliver::File;
 use Pate::Modules::Deliver::REST;
 
+use Pate::Modules::Config;
+
 use Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database;
 
 use PDF::API2;
@@ -155,37 +157,37 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
         $letters++;
 
         my $branchconfig = find_branchconfig('suomifi', $message);
-        my $config = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'rest'};
-        my $stagingdir = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'stagingdir'};
+        my $config = Pate::Modules::Config->new({interface => 'suomifi', branch => $branchconfig});
+        my $restConfig = $config->getRESTConfig();
         try {
-            my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $config->{baseUrl}});
+            my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $restConfig->{baseUrl}});
             my $cache = Koha::Caches->get_instance();
             my $cache_key = "suomifi-".$branchconfig."-token";
             my $accessToken = $cache->get_from_cache($cache_key);
 
             unless ($accessToken) {
-                print "Fetching access token\n";
-                my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $config->{password}, username => $config->{username}});
+                print "Fetching a access token\n" if $ENV{'DEBUG'};
+                my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $restConfig->{password}, username => $restConfig->{username}});
                 $accessToken = $tokenResponse->{accessToken};
                 #Token should expire in 1 hour, but we'll give it 5 seconds less to be sure
                 $cache->set_in_cache($cache_key, $accessToken, { expiry => 3600 - 5 });
             }
 
             my $file = create_letter($message, $branchconfig, 1);
-            $file = $stagingdir . '/' . $file;
-            print "Sending file $file\n";
+            $file = $config->stagingDir() . '/' . $file;
+            print "Sending the file: $file\n" if $ENV{'DEBUG'};
             my $fileResponse = $restClass->send('/v1/files', 'form-data', $accessToken, $file);
-            print "Creating message\n";
+            print "Creating the RESTMessage for @$message{'message_id'}\n" if $ENV{'DEBUG'};
             my $messageData = RESTMessage(%{$message}, 'branchconfig' => $branchconfig, 'file_id' => $fileResponse->{fileId});
             my $response;
-            print "Sending message\n";
+            print "Sending the message\n" if $ENV{'DEBUG'};
             if ($messageData->{recipient}->{id}) {
                 $response = $restClass->send('/v1/messages', 'application/json', $accessToken, $messageData);
             } else {
                 $response = $restClass->send('/v1/paper-mail-without-id', 'application/json', $accessToken, $messageData);
             }
             C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'sent' } );
-            print STDERR "Message @$message{'message_id'} sent successfully.\n" if $ENV{'DEBUG'};
+            print "Message @$message{'message_id'} sent successfully.\n" if $ENV{'DEBUG'};
         } catch {
             my $error = $_;
             print STDERR "Failed to send message @$message{'message_id'} for borrower @$message{'borrowernumber'}: $error\n";
@@ -335,16 +337,15 @@ sub create_letter {
     my $branchconfig = shift;
     my $writeonlypdf = shift; 
 
-    my $senderid;
-    $senderid=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'}
-        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'senderid'} );
+    my $config = Pate::Modules::Config->new({interface => 'suomifi', branch => $branchconfig});
+
+    my $senderid = $config->getIPostConfig->{senderid};
 
     die "Mandatory parameter senderid is not set for branch." unless ( $senderid );
 
     # Set fileprefix same as senderid or override if prefix is set in config
     my $fileprefix=$senderid;
-    $fileprefix=C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'fileprefix'}
-        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'fileprefix'} );
+    $fileprefix= $config->getIPostConfig->{fileprefix} if ( $config->getIPostConfig->{fileprefix} );
 
     # Define filename
     $filename = $fileprefix . "_";
@@ -353,8 +354,7 @@ sub create_letter {
     $pseudotime--;
     $filename .= strftime( "%Y%m%d%H%M%S", localtime($pseudotime) );
 
-    $filename .= '_' . C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'}
-        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'} );
+    $filename .= '_' . $config->getIPostConfig->{printprovider} if ( $config->getIPostConfig->{printprovider} );
 
     my $pdfname = @$message{'message_id'} . '.pdf';
     if ($writeonlypdf) {

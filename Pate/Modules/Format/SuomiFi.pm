@@ -94,6 +94,7 @@ sub RESTMessage {
     my $branch = Koha::Libraries->find( $param{'branchcode'} );
     my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
     my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} );
+    my $config = Pate::Modules::Config->new({ interface => 'suomifi', branch => $param{'branchconfig'} });
 
     my $paperMail = {
         'createCoverPage' => JSON::true,
@@ -118,10 +119,10 @@ sub RESTMessage {
         printingAndEnvelopingService => {
             postiMessaging => {
                 contactDetails => {
-                    email => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'contact'},
+                    email => $config->contact
                 },
-                username => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerid'},
-                password => C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'ipostpdf'}->{'customerpass'},
+                username => $config->getIPostConfig->{customerid},
+                password => $config->getIPostConfig->{customerpass},
             }
         },
         files => [
@@ -134,14 +135,14 @@ sub RESTMessage {
     my $format_message;
 
     if ($id) {
-        $format_message->{sender}->{serviceId} = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'rest'}->{'serviceid'},
+        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
         $format_message->{recipient}->{id} = $id;
         $format_message->{'paperMail'} = $paperMail;
         $format_message->{electronic}->{title} = $param{'subject'};
         $format_message->{electronic}->{body} = $param{'content'};
     } else {
         $format_message = $paperMail;
-        $format_message->{sender}->{serviceId} = C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$param{'branchconfig'}"}->{'rest'}->{'serviceid'},
+        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
     }
 
     $format_message->{externalId} = $param{'message_id'};
