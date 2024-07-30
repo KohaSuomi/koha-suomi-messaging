@@ -52,7 +52,7 @@ sub getIPostConfig {
     return {
         'customerid'    => $self->rootConfig()->{'ipostpdf'}->{'customerid'},
         'customerpass'  => $self->rootConfig()->{'ipostpdf'}->{'customerpass'},
-        'ovtId'         => $self->rootConfig()->{'ipostpdf'}->{'ovtid'},
+        'ovtid'         => $self->rootConfig()->{'ipostpdf'}->{'ovtid'},
         'senderid'      => $self->rootConfig()->{'ipostpdf'}->{'senderid'},
         'printprovider' => $self->rootConfig()->{'ipostpdf'}->{'printprovider'},
         'fileprefix'    => $self->rootConfig()->{'ipostpdf'}->{'fileprefix'},
