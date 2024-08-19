@@ -168,9 +168,9 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
             unless ($accessToken) {
                 print "Fetching a access token\n" if $ENV{'DEBUG'};
                 my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $restConfig->{password}, username => $restConfig->{username}});
-                $accessToken = $tokenResponse->{accessToken};
+                $accessToken = $tokenResponse->{access_token};
                 #Token should expire in 1 hour, but we'll give it 5 seconds less to be sure
-                $cache->set_in_cache($cache_key, $accessToken, { expiry => 3600 - 5 });
+                $cache->set_in_cache($cache_key, $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
             }
 
             my $file = create_letter($message, $branchconfig, 1);
