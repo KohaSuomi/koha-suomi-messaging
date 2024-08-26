@@ -46,6 +46,13 @@ unless (C4::Context->config('ksmessaging')) {
     exit 1;
 }
 
+if ( $ARGV[0] eq '--help' ) {
+    print "\nUsage: $0 --letters | --letters-as-suomifi | --suomifi [testihetu]\n\n";
+    exit 1;
+}
+
+my $testID = $ARGV[1] if ( $ARGV[1] );
+
 unless ( $ARGV[0] ) {
     print "\nSelect either '--letters', '--letters-as-suomifi' or '--suomifi'.\n" unless ( $ARGV[0] );
 }
@@ -94,7 +101,7 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
             }
         } elsif ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'} ) {
             my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-            my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} );
+            my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} ) || $testID;
             unless ( $ssn ) {
                 print STDERR "No suomi.fi message created for message " . @$message{'message_id'}. ". No SSN available.\n";
 
@@ -296,7 +303,7 @@ sub process_suomifi_letters {
     my $dispatch = @$message{'message_id'} . '.xml';
 
     my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-    my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} );
+    my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} ) || $testID;
 
     unless ( $ssn ) {
         $filename .= "_suoratulostus";
