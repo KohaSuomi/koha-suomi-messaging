@@ -101,7 +101,12 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
             }
         } elsif ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'} ) {
             my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-            my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} ) || $testID;
+            my $ssn = $testID || eval { $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} ) };
+
+            if ( $@ ) {
+                print STDERR "Error getting SSN: $@\n";
+            }
+
             unless ( $ssn ) {
                 print STDERR "No suomi.fi message created for message " . @$message{'message_id'}. ". No SSN available.\n";
 
@@ -303,7 +308,11 @@ sub process_suomifi_letters {
     my $dispatch = @$message{'message_id'} . '.xml';
 
     my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-    my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} ) || $testID;
+    my $ssn = $testID || eval { $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} ) };
+
+    if ( $@ ) {
+        print STDERR "Error getting SSN: $@\n";
+    }
 
     unless ( $ssn ) {
         $filename .= "_suoratulostus";
