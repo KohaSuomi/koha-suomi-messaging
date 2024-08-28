@@ -140,6 +140,9 @@ sub RESTMessage {
         $format_message->{'paperMail'} = $paperMail;
         $format_message->{electronic}->{title} = $param{'subject'};
         $format_message->{electronic}->{body} = $param{'content'};
+        $format_message->{electronic}->{files} = [{
+            fileId => $param{'file_id'}
+        }];
     } else {
         $format_message = $paperMail;
         $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
