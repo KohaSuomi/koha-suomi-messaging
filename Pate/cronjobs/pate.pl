@@ -197,7 +197,7 @@ elsif ($ARGV[0] eq '--suomifi-rest') {
             print "Sending the file: $file\n" if $ENV{'DEBUG'};
             my $fileResponse = $restClass->send('/v1/files', 'form-data', $accessToken, $file);
             print "Creating the RESTMessage for @$message{'message_id'}\n" if $ENV{'DEBUG'};
-            my $messageData = RESTMessage(%{$message}, 'branchconfig' => $branchconfig, 'file_id' => $fileResponse->{fileId});
+            my $messageData = RESTMessage(%{$message}, 'branchconfig' => $branchconfig, 'file_id' => $fileResponse->{fileId}, id => $testID);
             my $response;
             print "Sending the message\n" if $ENV{'DEBUG'};
             if ($messageData->{recipient}->{id}) {
@@ -386,7 +386,7 @@ sub create_letter {
         my $dispatch = @$message{'message_id'} . '.xml';
 
         my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-        my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} );
+        my $ssn = $ssndb->getSSNByBorrowerNumber ( @$message{'borrowernumber'} ) || $testID;
 
         unless ( $ssn ) {
             $filename .= "_suoratulostus";

@@ -93,7 +93,7 @@ sub RESTMessage {
     my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
     my $branch = Koha::Libraries->find( $param{'branchcode'} );
     my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
-    my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} );
+    my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} ) || $param{'id'};
     my $config = Pate::Modules::Config->new({ interface => 'suomifi', branch => $param{'branchconfig'} });
 
     my $paperMail = {
