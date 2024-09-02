@@ -22,9 +22,18 @@ sub branch {
     return $self->{branch};
 }
 
+sub branchConfig {
+    my ($self) = @_;
+    if (C4::Context->config('ksmessaging')->{$self->{interface}}->{'branches'}->{$self->{branch}}) {
+        return $self->{branch};
+    } else {
+        return 'default';
+    }
+}
+
 sub rootConfig {
     my ($self) = @_;
-    return C4::Context->config('ksmessaging')->{$self->{interface}}->{'branches'}->{$self->{branch}};
+    return C4::Context->config('ksmessaging')->{$self->{interface}}->{'branches'}->{$self->{branch}} || C4::Context->config('ksmessaging')->{$self->{interface}}->{'branches'}->{'default'};
 }
 
 sub stagingDir {
@@ -35,6 +44,11 @@ sub stagingDir {
 sub contact {
     my ($self) = @_;
     return $self->rootConfig()->{'contact'};
+}
+
+sub cacheKey {
+    my ($self) = @_;
+    return $self->rootConfig()->{'cachekey'};
 }
 
 sub getRESTConfig {
