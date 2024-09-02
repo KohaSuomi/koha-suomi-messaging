@@ -89,4 +89,21 @@ sub send {
     }
 }
 
+sub get {
+    my ($self, $endpoint, $contentType, $accessToken, $content) = @_;
+    my $ua = $self->ua;
+    my $baseUrl = $self->baseUrl;
+    my $req = HTTP::Request->new(GET => $baseUrl.$endpoint);
+    $req->header('Authorization' => 'Bearer '.$accessToken);
+    $req->header('Content-Type' => $contentType);
+    $req->content(encode_json($content)) if $content;
+    my $res = $ua->request($req);
+    if ($res->is_success) {
+        return decode_json($res->content);
+    } else {
+        print "Error: ". $res->content . "\n";
+        die $res->status_line;
+    }
+}
+
 1;
