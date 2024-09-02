@@ -1,7 +1,10 @@
-#!/usr/bin/perl
+package Pate::Modules::Format::SuomiFi;
 use warnings;
 use strict;
 use utf8;
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(SOAPEnvelope RESTMessage);
 
 use DateTime;
 use C4::Context;
@@ -148,8 +151,7 @@ sub RESTMessage {
         $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
     }
 
-    $format_message->{externalId} = $param{'message_id'};
-    
+    $format_message->{externalId} = "$param{'message_id'}";
     return $format_message;
 }
 

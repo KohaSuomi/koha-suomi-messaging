@@ -1,7 +1,10 @@
-#!/usr/bin/perl
+package Pate::Modules::Deliver::DispatchXML;
 use warnings;
 use strict;
 use utf8;
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(DispatchXML);
 
 use Koha::Patrons;
 

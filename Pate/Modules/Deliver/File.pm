@@ -1,7 +1,10 @@
-#/usr/bin/perl
+package Pate::Modules::Deliver::File;
 use warnings;
 use strict;
 use utf8;
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(WriteiPostEPL WriteiPostArchive WriteiPostPDF GetTransferConfig FileTransfer);
 
 use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
 
