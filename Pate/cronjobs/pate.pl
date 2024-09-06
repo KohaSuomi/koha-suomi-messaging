@@ -299,9 +299,6 @@ sub process_suomifi_letters {
     $pseudotime--;
     $filename .= strftime( "%Y%m%d%H%M%S", localtime($pseudotime) );
 
-    $filename .= '_' . C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'}
-        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'} );
-
     my $pdfname = @$message{'message_id'} . '.pdf';
     #my $formattedmessage = setMediaboxByPage ( toPDF ( %{$message} ) );
     my $formattedmessage = toPDF ( %{$message} );
@@ -317,6 +314,10 @@ sub process_suomifi_letters {
     unless ( $ssn ) {
         $filename .= "_suoratulostus";
     }
+    
+    $filename .= '_' . C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'}
+        if ( C4::Context->config('ksmessaging')->{'suomifi'}->{'branches'}->{"$branchconfig"}->{'ipostpdf'}->{'printprovider'} );
+
     $filename .= ".zip";
     my $dispatchXML = DispatchXML ( 'interface'      => 'suomifi',
                                     'borrowernumber' => @$message{'borrowernumber'},
