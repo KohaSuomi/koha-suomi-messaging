@@ -80,8 +80,6 @@ sub create_ipost_letter {
     my $pseudotime=time();
     $pseudotime--;
     $filename .= strftime( "%Y%m%d%H%M%S", localtime($pseudotime) );
-
-    $filename .= '_' . $self->config->getIPostConfig->{printprovider} if ( $self->config->getIPostConfig->{printprovider} );
     
     return $self->create_pdf($message, $filename) if $self->type eq 'pdf';
     return $self->create_ipost_pdf($message, $filename) if $self->type eq 'ipost_pdf';
@@ -112,6 +110,7 @@ sub create_ipost_pdf {
     unless ( $ssn ) {
         $filename .= "_suoratulostus";
     }
+    $filename .= '_' . $self->config->getIPostConfig->{printprovider} if ( $self->config->getIPostConfig->{printprovider} );
     $filename .= ".zip";
     my $dispatchXML = DispatchXML ( 'interface'      => $self->interface,
                                     'borrowernumber' => @$message{'borrowernumber'},
