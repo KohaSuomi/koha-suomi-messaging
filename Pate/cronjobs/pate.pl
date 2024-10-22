@@ -51,15 +51,15 @@ unless (C4::Context->config('ksmessaging')) {
     exit 1;
 }
 
-if ( $ARGV[0] eq '--help' ) {
-    print "\nUsage: $0 --letters | --letters-as-suomifi | --suomifi | --suomifi-rest [testihetu]\n\n";
+if ( $ARGV[0] eq '--help' || $ARGV[0] eq '-h' ) {
+    print "\nUsage: $0 --letters | --letters-as-suomifi-ipost| --suomifi | --letters-as-suomifi-rest [testihetu]\n\n";
     exit 1;
 }
 
 my $testID = $ARGV[1] if ( $ARGV[1] );
 
 unless ( $ARGV[0] ) {
-    print "\nSelect either '--letters', '--letters-as-suomifi', '--suomifi-rest' or '--suomifi'.\n" unless ( $ARGV[0] );
+    print "\nSelect either '--letters', '--letters-as-suomifi-ipost', '--letters-as-suomifi-rest' or '--suomifi'.\n" unless ( $ARGV[0] );
 }
 
 elsif ( $ARGV[0] eq '--suomifi' ) {
@@ -156,7 +156,7 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
     }
 
 }
-elsif ($ARGV[0] eq '--letters-as-suomifi') {
+elsif ($ARGV[0] eq '--letters-as-suomifi-ipost') {
     print STDERR "Staging letters as Suomi.fi messages...\n";
 
     foreach my $message ( @{ GetPrintMessages() } ) {
@@ -179,7 +179,7 @@ elsif ($ARGV[0] eq '--letters-as-suomifi') {
         };
     }
 }
-elsif ($ARGV[0] eq '--suomifi-rest') {
+elsif ($ARGV[0] eq '--letters-as-suomifi-rest') {
     print STDERR "Staging letters as Suomi.fi REST messages...\n";
     
     foreach my $message ( @{ GetPrintMessages() } ) {
