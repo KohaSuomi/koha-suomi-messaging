@@ -52,7 +52,7 @@ unless (C4::Context->config('ksmessaging')) {
 }
 
 if ( $ARGV[0] eq '--help' || $ARGV[0] eq '-h' ) {
-    print "\nUsage: $0 --letters | --letters-as-suomifi-ipost| --suomifi | --letters-as-suomifi-rest [testihetu]\n\n";
+    print "\nUsage: $0 --letters | --letters-as-suomifi-ipost | --suomifi | --letters-as-suomifi-rest [testihetu]\n\n";
     exit 1;
 }
 
