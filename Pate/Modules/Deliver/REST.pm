@@ -55,6 +55,30 @@ sub fetchAccessToken {
     }
 }
 
+=head2 changePassword
+
+Change the password for the REST API
+
+=cut
+
+sub changePassword {
+    my ($self, $endpoint, $contentType, $content) = @_;
+    my $ua = $self->ua;
+    my $baseUrl = $self->baseUrl;
+    my $req = POST(
+        $baseUrl.$endpoint, 
+        Content_Type => $contentType,
+        Content => encode_json($content) 
+    );
+    my $res = $ua->request($req);
+    if ($res->is_success) {
+        return decode_json($res->content);
+    } else {
+        print "Error: ". $res->content . "\n";
+        die $res->status_line;
+    }
+}
+
 =head2 send
 
 Send a request to the REST API

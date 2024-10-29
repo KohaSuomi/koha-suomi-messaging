@@ -39,7 +39,7 @@ try {
         #Token should be valid for 5 seconds less than the expiry time
         $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
     }
-    my $response = $restClass->send('/v1/change-password', 'application/json', {accessToken => $accessToken, currentPassword => $restConfig->{password}, newPassword => $new_password});
+    my $response = $restClass->changePassword('/v1/change-password', 'application/json', {accessToken => $accessToken, currentPassword => $restConfig->{password}, newPassword => $new_password});
     print "Password changed to $new_password\n";
     print "Add it to the config file!!!\n";
     $cache->clear_from_cache($config->cacheKey());
