@@ -10,14 +10,16 @@ use Koha::Caches;
 
 my $help;
 my $branchcode = 'default';
+my $old_password;
 
 GetOptions(
     'help' => \$help,
     'branchcode=s' => \$branchcode,
+    'old_password=s' => \$old_password,
 );
 
 if ($help) {
-    print "Usage: $0 [--branchcode=BRANCHCODE]\n";
+    print "Usage: $0 [--branchcode=BRANCHCODE] [--old_password=OLD_PASSWORD]\n";
     exit;
 }
 my $config = Pate::Modules::Config->new({
@@ -28,18 +30,19 @@ my $config = Pate::Modules::Config->new({
 my $new_password = generate_password();
 
 my $restConfig = $config->getRESTConfig();
+my $password = $old_password || $restConfig->{password};
 my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $restConfig->{baseUrl}});
 my $cache = Koha::Caches->get_instance();
 my $accessToken = $cache->get_from_cache($config->cacheKey());
 try {
     unless ($accessToken) {
         print "Fetching a access token\n" if $ENV{'DEBUG'};
-        my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $restConfig->{password}, username => $restConfig->{username}});
+        my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $password, username => $restConfig->{username}});
         $accessToken = $tokenResponse->{access_token};
         #Token should be valid for 5 seconds less than the expiry time
         $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
     }
-    my $response = $restClass->changePassword('/v1/change-password', 'application/json', {accessToken => $accessToken, currentPassword => $restConfig->{password}, newPassword => $new_password});
+    my $response = $restClass->changePassword('/v1/change-password', 'application/json', {accessToken => $accessToken, currentPassword => $password, newPassword => $new_password});
     print "Password changed to $new_password\n";
     print "Add it to the config file!!!\n";
     $cache->clear_from_cache($config->cacheKey());
