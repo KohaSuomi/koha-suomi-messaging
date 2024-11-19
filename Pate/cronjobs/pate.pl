@@ -142,8 +142,6 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
                 C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'failed', failure_code => $error} );
                 $undelivered++;
             };
-            # Add a delay between messages
-            sleep(1);
         } else {
              print STDERR "No suomi.fi message created for message " . @$message{'message_id'}. ". The format for the branch is not configured.\n";
 
@@ -154,7 +152,8 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
              $undelivered++;
              next;
         }
-
+        # Add a delay between messages
+        sleep(1);
     }
 
 }
@@ -204,6 +203,7 @@ elsif ($ARGV[0] eq '--letters-as-suomifi-rest') {
             C4::Letters::_set_message_status ( { message_id => @$message{'message_id'}, status => 'failed', failure_code => $error} );
             $undelivered++;
         };
+        sleep(1);
     }
 }
 elsif ( $ARGV[0] eq '--letters' ) {
