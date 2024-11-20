@@ -10,13 +10,13 @@ use C4::Letters qw ( GetPrintMessages GetSuomiFiMessages );
 use C4::Context;
 use Try::Tiny;
 
-use Pate::Modules::Format::PDF;
-use Pate::Modules::Format::EPL;
+use Pate::Modules::Format::PDF qw(toPDF getNumberOfPages setMediaboxByPage);
+use Pate::Modules::Format::EPL qw(toEPL);
 use Pate::Modules::Format::SuomiFi;
 
 use Pate::Modules::Deliver::SOAP;
-use Pate::Modules::Deliver::DispatchXML;
-use Pate::Modules::Deliver::File;
+use Pate::Modules::Deliver::DispatchXML qw(DispatchXML);
+use Pate::Modules::Deliver::File qw(WriteiPostEPL WriteiPostArchive FileTransfer);
 use Pate::Modules::Deliver::REST;
 
 use Pate::Modules::Config;

@@ -1,7 +1,10 @@
-#!/usr/bin/perl
+package Pate::Modules::Format::EPL;
 use warnings;
 use strict;
 use utf8;
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(toEPL);
 
 use Koha::Patrons;
 use Koha::DateUtils qw( dt_from_string output_pref );
