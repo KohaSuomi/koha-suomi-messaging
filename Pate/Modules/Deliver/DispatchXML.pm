@@ -1,7 +1,10 @@
-#!/usr/bin/perl
+package Pate::Modules::Deliver::DispatchXML;
 use warnings;
 use strict;
 use utf8;
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(DispatchXML);
 
 use Koha::Patrons;
 
@@ -25,9 +28,8 @@ sub DispatchXML {
     my %sender = GetDispatcherConfig( 'interface' => $param{'interface'}, 'branchconfig' => $param{'branchconfig'} );
     my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
 
-    #my $templateDir = C4::Context->config( 'intranetdir' ) . '/C4/KohaSuomi/Pate/Templates/';
-    my $templateDir = '/home/koha/koha-suomi-messaging/Pate/Templates/'; # This cannot be harcoded, FIXME:
-    # my $templateDir = C4::Context->config('ksmessaging')->{'templatedir'};
+    my $userHomeDir = (getpwuid($<))[7];
+    my $templateDir = $userHomeDir . '/koha-suomi-messaging/Pate/Templates/'; # Dynamically set the template directory
     my $xmlTemplate = HTML::Template->new( filename => $templateDir . 'DispatchXML.tmpl' );
 
        $xmlTemplate->param( SENDERID     => $sender{'senderId'} );

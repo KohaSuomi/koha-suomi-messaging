@@ -1,18 +1,23 @@
-#!/usr/bin/perl
+package Pate::Modules::Format::SuomiFi;
 use warnings;
 use strict;
 use utf8;
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(SOAPEnvelope RESTMessage);
 
 use DateTime;
 use C4::Context;
 use XML::Simple;
 use HTML::Template;
 use MIME::Base64;
+use JSON;
 
 use Koha::Patrons;
 use Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database;
 
 use Pate::Modules::Format::PDF;
+use Pate::Modules::Config;
 
 sub FormatDescription {
     my $description =  shift;
@@ -84,4 +89,70 @@ sub SOAPEnvelope {
 
     return $xmlTemplate->output;
 }
+
+sub RESTMessage {
+    my %param = @_;
+
+    my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
+    my $branch = Koha::Libraries->find( $param{'branchcode'} );
+    my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
+    my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} ) || $param{'id'};
+    my $config = Pate::Modules::Config->new({ interface => 'suomifi', branch => $param{'branchconfig'} });
+
+    my $paperMail = {
+        'createCoverPage' => JSON::true,
+        sender => {
+            address => {
+                name => $branch->branchname,
+                streetAddress => $branch->branchaddress1,
+                zipCode => $branch->branchzip,
+                city => $branch->branchcity,
+                countryCode => Pate::Modules::Config->countryCode( $branch->branchcountry )
+            }
+        },
+        recipient => {
+            address => {
+                name => $borrower->firstname . ' ' . $borrower->surname,
+                streetAddress => $borrower->address,
+                zipCode => $borrower->zipcode,
+                city => $borrower->city,
+                countryCode => Pate::Modules::Config->countryCode( $borrower->country )
+            }
+        },
+        printingAndEnvelopingService => {
+            postiMessaging => {
+                contactDetails => {
+                    email => $config->contact
+                },
+                username => $config->getIPostConfig->{customerid},
+                password => $config->getIPostConfig->{customerpass},
+            }
+        },
+        files => [
+            {
+                fileId => $param{'file_id'}
+            }
+        ]
+    };
+
+    my $format_message;
+
+    if ($id) {
+        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
+        $format_message->{recipient}->{id} = $id;
+        $format_message->{'paperMail'} = $paperMail;
+        $format_message->{electronic}->{title} = $param{'subject'};
+        $format_message->{electronic}->{body} = $param{'content'};
+        $format_message->{electronic}->{files} = [{
+            fileId => $param{'file_id'}
+        }];
+    } else {
+        $format_message = $paperMail;
+        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
+    }
+
+    $format_message->{externalId} = "$param{'message_id'}";
+    return $format_message;
+}
+
 1;

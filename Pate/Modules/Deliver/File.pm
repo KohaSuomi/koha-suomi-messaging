@@ -1,7 +1,10 @@
-#/usr/bin/perl
+package Pate::Modules::Deliver::File;
 use warnings;
 use strict;
 use utf8;
+use Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(WriteiPostEPL WriteiPostArchive WriteiPostPDF GetTransferConfig FileTransfer);
 
 use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
 
@@ -63,6 +66,24 @@ sub WriteiPostArchive {
 
     # Create new archive
     $zip->writeToFileNamed($stagingdir . '/' . $param{'filename'}) == AZ_OK or die localtime . ": Can't create archive " . $stagingdir . '/' . $param{'filename'} . '.';
+}
+
+sub WriteiPostPDF {
+    my %param = @_;
+
+    # Determine and make target directory if needed
+    my $stagingdir = C4::Context->config('ksmessaging')->{"$param{'interface'}"}->{'branches'}->{"$param{'branchconfig'}"}->{'stagingdir'};
+    unless ( -d "$stagingdir" ) {
+        mkdir "$stagingdir" or die localtime . ": Can't create directory $stagingdir.";
+    }
+
+    # Write PDF to disk
+    open ( PDF, ">encoding(latin1)", $stagingdir . '/' . $param{'filename'} )
+      or die localtime . ": Can't write to " . $stagingdir . '/' . $param{'filename'} . ".";
+
+    print PDF $param{'pdf'};
+    close PDF;
+
 }
 
 sub GetTransferConfig {
