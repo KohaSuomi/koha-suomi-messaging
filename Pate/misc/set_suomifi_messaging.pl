@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use C4::Context;
+
+# This script is used to set up the SuomiFi messaging system in Koha.
+# It inserts a new message transport type 'suomifi' into the database
+# and updates the system preferences to enable SuomiFi messaging.
+# It also copies existing message transports for circulation and reserves
+# from the database and associates them with the new 'suomifi' transport type.
+# This is a one-time setup script and should be run only once after
+
+
+my $dbh = C4::Context->dbh;
+$dbh->do("INSERT IGNORE INTO message_transport_types (message_transport_type) VALUES ('suomifi');");
+$dbh->do("INSERT IGNORE INTO systempreferences (variable, value) VALUES ('SuomiFiMessaging', '1');");
+
+my $message_transports = $dbh->selectall_arrayref("SELECT message_attribute_id, message_transport_type, is_digest, letter_module, letter_code FROM message_transports WHERE letter_module in ('circulation', 'reserves') GROUP BY message_attribute_id, letter_code");
+
+foreach my $row (@$message_transports) {
+    my ($message_attribute_id, $message_transport_type, $is_digest, $letter_module, $letter_code) = @$row;
+    print "Inserting: $message_attribute_id, $message_transport_type, $is_digest, $letter_module, $letter_code\n";
+    my $sth = $dbh->prepare("INSERT INTO message_transports (message_attribute_id, message_transport_type, is_digest, letter_module, letter_code) VALUES (?, ?, ?, ?, ?)");
+    $sth->execute($message_attribute_id, 'suomifi', $is_digest, $letter_module, $letter_code) or die $dbh->errstr;
+    $sth->finish();
+}
