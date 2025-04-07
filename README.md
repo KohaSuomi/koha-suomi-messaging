@@ -82,6 +82,8 @@ Sen jälkeen crontabiin sopivat rivit viestien käsittelemistä varten, esimerki
 ```
 */5 07-22 * * *   $TRIGGER cronjobs/pate.pl --suomifi
 50 20 * * *       $TRIGGER cronjobs/pate.pl --letters
+50 20 * * *       $TRIGGER cronjobs/pate.pl --letters-as-suomifi-ipost
+50 20 * * *       $TRIGGER cronjobs/pate.pl --letters-as-suomifi-rest
 ```
 
 Paperikirjeet (--letters) lähetetään tässä klo 20.50 joka päivä, koska ennen yhdeksää PostiMessagingin palveluun toimitetut kirjeet ehtivät käsittelyyn saman päivän ajoihin, jolloin ne päätyvät vastaanottajille nopeammin. Ainakin toivottavasti.
@@ -97,17 +99,17 @@ Lisäksi on hyvä ajastaa vanhojen kirjepakettien siivous valmisteluhakemistosta
 - Määrittele viestipohjat. Viestipohjien tulee olla puhdasta tekstiä. HTML-muotoiluja ei tueta, mutta rivinvaihdot säilytetään tekstiä ladottaessa.
 - Kohan listailmaisimia (----) ei tarvita, ne tulevat turhaan näkyviin viestiin jos niitä käyttää. Katso ohje viestipohjien määrittelyyn: [[11_Työkalut#112-Ilmoitukset-ja-kuitit|Ilmoitukset ja kuitit]].
 - Kielikohtaisissa viestipohjissa on uusi kohta 'suomifi', jonka alle suomi.fi viestipohjat määritetään.
-- Jos haluat käyttää suomi.fi viestintää, käy kliksauttamassa Kohan järjestelmäasetuksissa "SuomiFiMessaging" asentoon "Enable".
+- Jos haluat käyttää suomi.fi viestintää, tulee ajaa set_suomifi_messaging.pl-skripti, joka lisää tarvittavat asetukset. Ominaisuuden näkymistä säädetään SuomiFiMessaging-asetuksella, joka löytyy paikallisista asetuksista.
 - Kun SuomiFiMessaging on käytössä, on asiakkaan viestiasetuksissa uusi kohta 'suomifi'. Aseta asiakaskohtaisesti suomi.fi -viestitäpät asiakkaan haluamille viestityypeille. Katso ohje viestiasetusten tekoon: [[1_Asiakkaat#Asiakkaan-viestiasetukset|Asiakkaan viestiasetukset]]. Suomi.fi viestipalvelu tunnistaa asiakkaat henkilötunnuksen perusteella, joten varmista, että asiakkaan henkilötunnus on sotu-siilossa.
 
 ## Suomi.fi viestinnässä huomioitavia asioita
 
-- Suomi.fi viestejä varten asiakkaalla tulee olla tili suomi.fi -viestipalvelussa. Tilin voi ottaa käyttöön osoitteessa: https://www.suomi.fi/viestit.
-- Suomi.fi viestejä varten asiakkaan henkilötunnuksen on oltava sotusiilossa ja sen on oltava oikein. Jos asiakkaalla on väärä hetu, päätyvät viestit pahimmassa tapauksessa väärälle henkilölle. Yhteisöille tai hetuttomille viestiminen ei suomi.fi:n kautta onnistu, ja jos tämmöisille asiakkaille kliksii suomi.fi -viestitäppiä, niin tuloksena on "failed" tilaisia viestejä viestijonossa. Tilannetta voisi hieman parantaa tallentamalla Y-tunnukset sellaisille yhteisöasiakkaille, joilla sellainen on. Toistaiseksi Koha-Suomessa ei kuitenkaan ole yhtenäistä käytäntöä tai päätöstä Y-tunnusten tallentamisesta.
-- Suomi.fi viestissä ei näy viestin sisältöä suoraan suomi.fi postilaatikossa. Viestissä näkyy ainoastaan otsikko "Kirjaston nimi, kirjastojen viestit". Viestin sisältönä on "Olet saanut dokumentin suomi.fi -viestipalveluun". Varsinainen viestin sisältö on viestin liitteenä olevassa PDF:ssä. Tämä on suomi.fi ipost-viestipalvelun rajoite, eikä sille ikävä kyllä oikein voi mitään Kohan päässä.
+- Suomi.fi viestejä varten asiakkaalla tulee olla tili suomi.fi -viestipalvelussa. Tilin voi ottaa käyttöön osoitteessa: https://www.suomi.fi/viestit. Tällä hetkellä on menossa kampanja, missä verottajan sivuilla vieraileville ehdotetaan tilin aktivointia ja vuonna 2026 tili pyritään aktivoimaan pakotetusti. Jos tiliä ei ole aktivointu, niin suomi.fi:n kautta menevät viestit päätyvät asiakkaalle kirjepostissa.
+- Suomi.fi viestejä varten asiakkaan henkilötunnuksen on oltava sotusiilossa ja sen on oltava oikein. Jos asiakkaalla on väärä hetu, päätyvät viestit pahimmassa tapauksessa väärälle henkilölle. Hetuttomille lähettäminen onnistuu ja siinä suositaan REST-rajapintaa. Yhteisöille viestiminen ei suomi.fi:n kautta onnistu, ja jos tämmöisille asiakkaille kliksii suomi.fi -viestitäppiä, niin tuloksena on "failed" tilaisia viestejä viestijonossa. Tilannetta voisi hieman parantaa tallentamalla Y-tunnukset sellaisille yhteisöasiakkaille, joilla sellainen on. Toistaiseksi Koha-Suomessa ei kuitenkaan ole yhtenäistä käytäntöä tai päätöstä Y-tunnusten tallentamisesta.
+- REST-rajapinnan kautta Suomi.fi viestit näkyvät suoraan palvelussa. Muulla tavalla lähetettynä viestissä ei näy viestin sisältöä suoraan suomi.fi postilaatikossa. Viestissä näkyy ainoastaan otsikko "Kirjaston nimi, kirjastojen viestit". Viestin sisältönä on "Olet saanut dokumentin suomi.fi -viestipalveluun". Varsinainen viestin sisältö on viestin liitteenä olevassa PDF:ssä.
 - Selaimissa PDF-lukuohjelma tulee mukana, mutta mobiililaitteissa pitää olla suomi.fi -sovelluksen lisäksi asennettuna myös PDF-lukuohjelma. Kaikki lukuohjelmat eivät suomi.fi -sovelluksen kanssa tunnu toimivan. Lisäksi avaamisongelmia voi aiheuttaa esimerkiksi mobiililaitteessa käytössä oleva sisällönsuodatus tai VPN-ohjelmisto. Ongelmista on raportoitu VIA:lle.
 - PDF-dokumenttia on varsin hankala lukea kännykän pieneltä näytöltä. Viesti on taitettu suomi.fi palvelun vaatimusten mukaisesti SFS-2487 standardin kuvaamaa asettelumallia seuraten A4-paperille, jotta kirje voitaisiin toimittaa tarvittaessa eteenpäin paperikirjeenä.
-- Kohasta voidaan lähettää suomi.fi-viesteinä Kohan normaalia viestikanavaa pitkin kulkevat viestit, eli noutoilmoitukset, laina- ja palautuskuitit ja eräpäivämuistutukset. Laskuja tai palautuskehotuksia ei voi lähettää, koska niiden lähetys toimii Kohassa eri tavalla. Ainakin palautuskehotusten lähetyksen yhdenmukaistaminen muiden Kohan viestityyppien kanssa olisi hyvä seuraava askel ja mahdollistaisi myös palautuskehotusten toimittamisen asiakkaan valitsemalla tavalla.
+- Kohasta voidaan lähettää suomi.fi-viesteinä joko suomi.fi-tyyppiset vietit tai print-tyyppiset viestit. Tämä mahdollistaa myös palautuskehotusten ja laskujen lähettämisen suomi.fi:n kautta.
 
 ## EPL lomakepohjien määrittäminen e-kirjepalveluntarjoajan järjestelmässä
 
