@@ -105,6 +105,7 @@ sub RESTMessage {
         'messageServiceType' => 'Normal',
         'colorPrinting' => JSON::false,
         'rotateLandscapePages' => JSON::false,
+        'twoSidedPrinting' => JSON::true,
         sender => {
             address => {
                 name => $branch->branchname,
