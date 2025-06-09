@@ -104,6 +104,7 @@ sub RESTMessage {
         'createAddressPage' => JSON::true,
         'messageServiceType' => 'Normal',
         'colorPrinting' => JSON::false,
+        'rotateLandscapePages' => JSON::false,
         sender => {
             address => {
                 name => $branch->branchname,
