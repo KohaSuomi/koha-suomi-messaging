@@ -130,7 +130,7 @@ sub RESTMessage {
         },
         files => [
             {
-                fileId => $param{'file_id'}
+                attachmentId => $param{'file_id'}
             }
         ]
     };
@@ -138,21 +138,18 @@ sub RESTMessage {
     my $format_message;
 
     if ($id) {
-        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
         $format_message->{recipient}->{id} = $id;
         $format_message->{'paperMail'} = $paperMail;
         $format_message->{electronic}->{title} = $param{'subject'};
         $format_message->{electronic}->{body} = $param{'content'};
         $format_message->{electronic}->{files} = [{
-            fileId => $param{'file_id'}
+            attachmentId => $param{'file_id'}
         }];
     } else {
         $format_message = $paperMail;
-        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
     }
-
+    
+    $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid};
     $format_message->{externalId} = "$param{'message_id'}";
     return $format_message;
 }
-
-1;

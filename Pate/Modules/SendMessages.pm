@@ -87,9 +87,9 @@ sub send_suomifi_rest {
     my $response;
     print "Sending the message\n" if $ENV{'DEBUG'};
     if ($messageData->{recipient}->{id}) {
-        $response = $restClass->send('/v1/messages', 'application/json', $accessToken, $messageData);
+        $response = $restClass->send('/v2/messages', 'application/json', $accessToken, $messageData);
     } else {
-        $response = $restClass->send('/v1/paper-mail-without-id', 'application/json', $accessToken, $messageData);
+        $response = $restClass->send('/v2/paper-mail-without-id', 'application/json', $accessToken, $messageData);
     }
     return 1;
 }
