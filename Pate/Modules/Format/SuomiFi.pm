@@ -143,7 +143,7 @@ sub RESTMessage {
         $format_message->{electronic}->{title} = $param{'subject'};
         $format_message->{electronic}->{body} = $param{'content'};
         $format_message->{electronic}->{'bodyFormat'} = 'Text';
-        $format_message->{electronic->{visibility} = 'Normal';
+        $format_message->{electronic}->{visibility} = 'Normal';
         $format_message->{electronic}->{attachments} = [{
             attachmentId => $param{'file_id'}
         }];
