@@ -128,7 +128,7 @@ sub RESTMessage {
                 password => $config->getIPostConfig->{customerpass},
             }
         },
-        files => [
+        attachments => [
             {
                 attachmentId => $param{'file_id'}
             }
@@ -142,13 +142,13 @@ sub RESTMessage {
         $format_message->{'paperMail'} = $paperMail;
         $format_message->{electronic}->{title} = $param{'subject'};
         $format_message->{electronic}->{body} = $param{'content'};
-        $format_message->{electronic}->{files} = [{
+        $format_message->{electronic}->{attachments} = [{
             attachmentId => $param{'file_id'}
         }];
     } else {
         $format_message = $paperMail;
     }
-    
+
     $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid};
     $format_message->{externalId} = "$param{'message_id'}";
     return $format_message;
