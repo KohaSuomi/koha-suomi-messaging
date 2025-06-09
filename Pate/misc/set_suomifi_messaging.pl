@@ -20,6 +20,9 @@ my $message_transports = $dbh->selectall_arrayref("SELECT message_attribute_id, 
 
 foreach my $row (@$message_transports) {
     my ($message_attribute_id, $message_transport_type, $is_digest, $letter_module, $letter_code) = @$row;
+    if ($message_transport_type eq 'suomifi') {
+        next; # Skip if already 'suomifi'
+    }
     print "Inserting: $message_attribute_id, $message_transport_type, $is_digest, $letter_module, $letter_code\n";
     my $sth = $dbh->prepare("INSERT INTO message_transports (message_attribute_id, message_transport_type, is_digest, letter_module, letter_code) VALUES (?, ?, ?, ?, ?)");
     $sth->execute($message_attribute_id, 'suomifi', $is_digest, $letter_module, $letter_code) or die $dbh->errstr;
