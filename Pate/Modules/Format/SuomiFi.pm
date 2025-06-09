@@ -103,6 +103,7 @@ sub RESTMessage {
         'createCoverPage' => JSON::true,
         'createAddressPage' => JSON::true,
         'messageServiceType' => 'Normal',
+        'colorPrinting' => JSON::false,
         sender => {
             address => {
                 name => $branch->branchname,
