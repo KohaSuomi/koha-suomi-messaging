@@ -101,6 +101,7 @@ sub RESTMessage {
 
     my $paperMail = {
         'createCoverPage' => JSON::true,
+        'createAddressPage' => JSON::true,
         sender => {
             address => {
                 name => $branch->branchname,
