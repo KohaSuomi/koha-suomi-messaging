@@ -37,7 +37,6 @@ sub setMediaboxByPage {
 }
 
 sub toPDF {
-    no warnings 'uninitialized';
     # Produce SFS-2487 document from the letter in PDF format
     my %param = @_;
 
