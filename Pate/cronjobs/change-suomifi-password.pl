@@ -10,12 +10,14 @@ use Koha::Caches;
 use XML::LibXML;
 
 my $help;
+my $verbose = 0;
 my $branchcode = 'default';
 my $old_password;
 my $write_config = 0;
 
 GetOptions(
     'help' => \$help,
+    'verbose|v' => \$verbose,
     'branchcode=s' => \$branchcode,
     'old_password=s' => \$old_password,
     'write_config' => \$write_config,
@@ -39,17 +41,17 @@ my $cache = Koha::Caches->get_instance();
 my $accessToken = $cache->get_from_cache($config->cacheKey());
 try {
     unless ($accessToken) {
-        print "Fetching a access token\n";
+        print "Fetching a access token\n" if $verbose;
         my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $password, username => $restConfig->{username}});
         $accessToken = $tokenResponse->{access_token};
         #Token should be valid for 5 seconds less than the expiry time
         $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
     }
     my $response = $restClass->changePassword('/v1/change-password', 'application/json', {accessToken => $accessToken, currentPassword => $password, newPassword => $new_password});
+    print "Password changed to $new_password\n" if $verbose;
     if ($write_config) {
         find_and_replace_password($restConfig->{username}, $new_password);
     } else {
-        print "Password changed to $new_password\n";
         print "Not writing to config file, use --write_config to enable this.\n";
         print "Add the new password to your config file manually.\n";
     }
