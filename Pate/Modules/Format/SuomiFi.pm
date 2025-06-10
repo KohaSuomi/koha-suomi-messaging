@@ -162,7 +162,8 @@ sub RESTMessage {
             },
             'unreadMessageNotification' => {
                 'reminder' => 'No reminders'
-            }
+            },
+            'senderDetailsInNotifications' => 'Organisation and service name'
         },
         'attachments' => [{
             attachmentId => $param{'file_id'}
