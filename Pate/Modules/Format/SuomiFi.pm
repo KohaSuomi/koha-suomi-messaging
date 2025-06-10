@@ -155,9 +155,9 @@ sub RESTMessage {
                     'en' => 'New message from the library'
                 },
                 'content' => {
-                    'fi' => 'Uusi '.$param{'subject'},
-                    'sv' => 'Ett nytt '.$param{'subject'},
-                    'en' => 'New '.$param{'subject'}
+                    'fi' => $param{'subject'},
+                    'sv' => $param{'subject'},
+                    'en' => $param{'subject'}
                 },
             },
             'unreadMessageNotification' => {
