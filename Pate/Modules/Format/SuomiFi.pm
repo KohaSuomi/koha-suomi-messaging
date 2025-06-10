@@ -174,12 +174,10 @@ sub RESTMessage {
 
     if ($id) {
         $format_message->{recipient}->{id} = $id;
-        $format_message->{'paperMail'} = $paperMail;
         $format_message->{electronic} = $electronic;
-    } else {
-        $format_message->{'paperMail'} = $paperMail;
-    }
-
+    } 
+    
+    $format_message->{'paperMail'} = $paperMail;
     $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid};
     $format_message->{externalId} = "$param{'message_id'}";
     return $format_message;
