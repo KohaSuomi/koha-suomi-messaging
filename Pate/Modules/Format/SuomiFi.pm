@@ -140,20 +140,25 @@ sub RESTMessage {
         ]
     };
 
+    my $electronic = {
+        title => $param{'subject'},
+        body => $param{'content'},
+        bodyFormat => 'Text',
+        visibility => 'Normal',
+        'replyAllowedBy' => "No one", # No reply allowed
+        'messageServiceType' => 'Normal',
+        'notifications' => {},
+        'attachments' => [{
+            attachmentId => $param{'file_id'}
+        }]
+    };
+
     my $format_message;
 
     if ($id) {
         $format_message->{recipient}->{id} = $id;
         $format_message->{'paperMail'} = $paperMail;
-        $format_message->{electronic}->{title} = $param{'subject'};
-        $format_message->{electronic}->{body} = $param{'content'};
-        $format_message->{electronic}->{'bodyFormat'} = 'Text';
-        $format_message->{electronic}->{visibility} = 'Normal';
-        $format_message->{electronic}->{'replyAllowedBy'} = "No one"; # No reply allowed
-        $format_message->{electronic}->{'messageServiceType'} = 'Normal';
-        $format_message->{electronic}->{attachments} = [{
-            attachmentId => $param{'file_id'}
-        }];
+        $format_message->{electronic} = $electronic;
     } else {
         $format_message = $paperMail;
     }
