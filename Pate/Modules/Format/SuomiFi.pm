@@ -151,12 +151,12 @@ sub RESTMessage {
             'customisedNewMessageNotification' => {
                 'title' => {
                     'fi' => 'Uusi viesti kirjastosta',
-                    'sv' => 'Nytt meddelande från biblioteket',
+                    'sv' => 'Ett nytt meddelande från biblioteket',
                     'en' => 'New message from the library'
                 },
                 'content' => {
                     'fi' => 'Uusi '.$param{'subject'},
-                    'sv' => 'Nytt '.$param{'subject'},
+                    'sv' => 'Ett nytt '.$param{'subject'},
                     'en' => 'New '.$param{'subject'}
                 },
             },
