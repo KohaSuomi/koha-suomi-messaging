@@ -37,6 +37,7 @@ sub setMediaboxByPage {
 }
 
 sub toPDF {
+    no warnings 'uninitialized';
     # Produce SFS-2487 document from the letter in PDF format
     my %param = @_;
 
@@ -59,10 +60,10 @@ sub toPDF {
     # For now we'll put branch information as sender, change later to support combine across branches
     my $branch = Koha::Libraries->find( $param{'branchcode'} );
 
-    $pdf->text($branch->branchname // '', autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($branch->branchaddress1 // '', autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($branch->branchzip . ' ' . $branch->branchcity // '', autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($branch->branchphone // '', autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($branch->branchname, autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($branch->branchaddress1, autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($branch->branchzip . ' ' . $branch->branchcity, autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($branch->branchphone, autoflow => 'on', font_size=>"$font_size");
 
     # Insert date in the correct location
     my $letterdate = output_pref ( { dt => dt_from_string(), dateonly => 1 } );
@@ -81,11 +82,11 @@ sub toPDF {
     # my $borrower = GetMember( borrowernumber => $param{'borrowernumber'} );
     my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
 
-    $pdf->text($borrower->firstname . ' ' . $borrower->surname // '', autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($borrower->firstname . ' ' . $borrower->surname, autoflow => 'on', font_size=>"$font_size");
     $pdf->text('', autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($borrower->address // '', autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($borrower->zipcode  . ' ' . $borrower->city // '', autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($borrower->country // '', autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($borrower->address, autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($borrower->zipcode  . ' ' . $borrower->city, autoflow => 'on', font_size=>"$font_size");
+    $pdf->text($borrower->country, autoflow => 'on', font_size=>"$font_size");
 
     ### CONTENT ###
 
