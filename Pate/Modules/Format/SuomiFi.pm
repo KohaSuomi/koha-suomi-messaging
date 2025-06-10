@@ -150,14 +150,14 @@ sub RESTMessage {
         'notifications' => {
             'customisedNewMessageNotification' => {
                 'title' => {
-                    'fi' => 'Kirjasto ilmoittaa',
-                    'sv' => 'Biblioteket meddelar',
-                    'en' => 'Library informs'
-                },
-                'content' => {
                     'fi' => 'Uusi viesti kirjastosta',
                     'sv' => 'Nytt meddelande från biblioteket',
                     'en' => 'New message from the library'
+                },
+                'content' => {
+                    'fi' => 'Uusi '.$param{'subject'},
+                    'sv' => 'Nytt '.$param{'subject'},
+                    'en' => 'New '.$param{'subject'}
                 },
             },
             'unreadMessageNotification' => {
