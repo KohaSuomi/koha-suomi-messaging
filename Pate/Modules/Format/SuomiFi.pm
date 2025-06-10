@@ -177,7 +177,7 @@ sub RESTMessage {
         $format_message->{'paperMail'} = $paperMail;
         $format_message->{electronic} = $electronic;
     } else {
-        $format_message = $paperMail;
+        $format_message->{'paperMail'} = $paperMail;
     }
 
     $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid};
