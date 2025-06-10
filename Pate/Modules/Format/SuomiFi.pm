@@ -147,7 +147,23 @@ sub RESTMessage {
         visibility => 'Normal',
         'replyAllowedBy' => "No one", # No reply allowed
         'messageServiceType' => 'Normal',
-        'notifications' => {},
+        'notifications' => {
+            'customisedNewMessageNotification' => {
+                'title' => {
+                    'fi' => $param{'subject'},
+                    'sv' => $param{'subject'},
+                    'en' => $param{'subject'}
+                },
+                'content' => {
+                    'fi' => $param{'content'},
+                    'sv' => $param{'content'},
+                    'en' => $param{'content'}
+                },
+            },
+            'unreadMessageNotification' => {
+                'reminder' => 'No reminders'
+            }
+        },
         'attachments' => [{
             attachmentId => $param{'file_id'}
         }]
