@@ -11,6 +11,8 @@ use Archive::Zip qw( :ERROR_CODES :CONSTANTS );
 use Net::SFTP::Foreign;
 use Net::FTP;
 
+use C4::KohaSuomi::SFTP;
+
 sub WriteiPostEPL {
     my %param = @_;
     my $letters;
@@ -112,24 +114,8 @@ sub FileTransfer {
         if ( $config{'protocol'} eq 'sftp' ) {
             $config{'port'} = 22  unless $config{'port'}; # Default port for sftp
 
-            # Connect and send with SFTP
-            my $sftp = Net::SFTP::Foreign->new ( 'host'     => $config{'host'},
-                                                 'port'     => $config{'port'},
-                                                 'user'     => $config{'user'},
-                                                 'password' => $config{'password'} );
-
-            if ( $sftp->error ) {
-                print STDERR "Logging in to SFTP server failed.\n";
-                return 0;
-            }
-            unless ( $sftp->put ( $stagingdir . '/' . $param{'filename'}, $config{'remotedir'} . '/' . $param{'filename'} . '.part' ) ) {
-                print STDERR "Transferring file to SFTP server failed.\n";
-                return 0;
-            }
-            unless ( $sftp->rename ( $config{'remotedir'} . '/' . $param{'filename'} . '.part', $config{'remotedir'} . '/' . $param{'filename'} ) ) {
-                print STDERR "Renaming a file on SFTP server failed.\n";
-                return 0;
-            }
+            my ( $succes ) = C4::KohaSuomi::SFTP::sftp_transfer([$param{'filename'}], \%config, $stagingdir);
+            return $succes;
         }
         elsif ( $config{'protocol'} eq 'ftp' ) {
             $config{'port'} = 21  unless $config{'port'}; # Default port for ftp
