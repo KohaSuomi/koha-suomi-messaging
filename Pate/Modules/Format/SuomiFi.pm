@@ -101,6 +101,11 @@ sub RESTMessage {
 
     my $paperMail = {
         'createCoverPage' => JSON::true,
+        'createAddressPage' => JSON::true,
+        'messageServiceType' => 'Normal',
+        'colorPrinting' => JSON::false,
+        'rotateLandscapePages' => JSON::false,
+        'twoSidedPrinting' => JSON::true,
         sender => {
             address => {
                 name => $branch->branchname,
@@ -128,31 +133,52 @@ sub RESTMessage {
                 password => $config->getIPostConfig->{customerpass},
             }
         },
-        files => [
+        attachments => [
             {
-                fileId => $param{'file_id'}
+                attachmentId => $param{'file_id'}
             }
         ]
+    };
+
+    my $electronic = {
+        title => $param{'subject'},
+        body => $param{'content'},
+        bodyFormat => 'Text',
+        visibility => 'Normal',
+        'replyAllowedBy' => "No one", # No reply allowed
+        'messageServiceType' => 'Normal',
+        'notifications' => {
+            'customisedNewMessageNotification' => {
+                'title' => {
+                    'fi' => 'Uusi viesti kirjastosta',
+                    'sv' => 'Ett nytt meddelande från biblioteket',
+                    'en' => 'New message from the library'
+                },
+                'content' => {
+                    'fi' => $param{'subject'},
+                    'sv' => $param{'subject'},
+                    'en' => $param{'subject'}
+                },
+            },
+            'unreadMessageNotification' => {
+                'reminder' => 'No reminders'
+            },
+            'senderDetailsInNotifications' => 'Organisation and service name'
+        },
+        'attachments' => [{
+            attachmentId => $param{'file_id'}
+        }]
     };
 
     my $format_message;
 
     if ($id) {
-        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
         $format_message->{recipient}->{id} = $id;
-        $format_message->{'paperMail'} = $paperMail;
-        $format_message->{electronic}->{title} = $param{'subject'};
-        $format_message->{electronic}->{body} = $param{'content'};
-        $format_message->{electronic}->{files} = [{
-            fileId => $param{'file_id'}
-        }];
-    } else {
-        $format_message = $paperMail;
-        $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid},
-    }
-
+        $format_message->{electronic} = $electronic;
+    } 
+    
+    $format_message->{'paperMail'} = $paperMail;
+    $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid};
     $format_message->{externalId} = "$param{'message_id'}";
     return $format_message;
 }
-
-1;
