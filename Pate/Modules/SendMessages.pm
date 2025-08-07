@@ -81,15 +81,15 @@ sub send_suomifi_rest {
     my $filename = $createLetters->create_ipost_letter($message);
     $filename = $config->stagingDir() . '/' . $filename;
     print "Sending the file: $filename\n" if $ENV{'DEBUG'};
-    my $fileResponse = $restClass->send('/v1/files', 'form-data', $accessToken, $filename);
+    my $fileResponse = $restClass->send('/v2/attachments', 'form-data', $accessToken, $filename);
     print "Creating the RESTMessage for @$message{'message_id'}\n" if $ENV{'DEBUG'};
-    my $messageData = RESTMessage(%{$message}, 'branchconfig' => $config->branchConfig, 'file_id' => $fileResponse->{fileId}, id => $self->testID);
+    my $messageData = RESTMessage(%{$message}, 'branchconfig' => $config->branchConfig, 'file_id' => $fileResponse->{attachmentId}, id => $self->testID);
     my $response;
     print "Sending the message\n" if $ENV{'DEBUG'};
     if ($messageData->{recipient}->{id}) {
-        $response = $restClass->send('/v1/messages', 'application/json', $accessToken, $messageData);
+        $response = $restClass->send('/v2/messages', 'application/json', $accessToken, $messageData);
     } else {
-        $response = $restClass->send('/v1/paper-mail-without-id', 'application/json', $accessToken, $messageData);
+        $response = $restClass->send('/v2/paper-mail-without-id', 'application/json', $accessToken, $messageData);
     }
     return 1;
 }
