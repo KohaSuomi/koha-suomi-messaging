@@ -14,6 +14,7 @@ my $verbose = 0;
 my $branchcode = 'default';
 my $old_password;
 my $write_config = 0;
+my $backup;
 
 GetOptions(
     'help' => \$help,
@@ -21,10 +22,11 @@ GetOptions(
     'branchcode=s' => \$branchcode,
     'old_password=s' => \$old_password,
     'write_config' => \$write_config,
+    'backup=s' => \$backup
 );
 
 if ($help) {
-    print "Usage: $0 [--branchcode=BRANCHCODE] [--old_password=OLD_PASSWORD] [--write_config]\n";
+    print "Usage: $0 [--branchcode=BRANCHCODE] [--old_password=OLD_PASSWORD] [--write_config] [--backup=BACKUP]\n";
     exit;
 }
 my $config = Pate::Modules::Config->new({
@@ -32,7 +34,15 @@ my $config = Pate::Modules::Config->new({
     branch => $branchcode,
 });
 
+# Generate and store the new password in a file for recovery if needed
 my $new_password = generate_password();
+
+# Save the new password to a backup file before proceeding
+my $backup_file = $backup || "/var/spool/koha/suomifi_password_backup.txt";
+open my $fh, '>', $backup_file or warn "Could not open $backup_file for writing: $!";
+print $fh "$new_password\n" if $fh;
+close $fh if $fh;
+print "New password backed up to $backup_file\n" if $verbose;
 
 my $restConfig = $config->getRESTConfig();
 my $password = $old_password || $restConfig->{password};
@@ -55,7 +65,7 @@ try {
         print "Not writing to config file, use --write_config to enable this.\n";
         print "Add the new password to your config file manually.\n";
     }
-    $cache->clear_from_cache($config->cacheKey());
+    $cache->clear_from_cache($config->cacheKey()); 
 } catch {
     print "$_\n";
 };
