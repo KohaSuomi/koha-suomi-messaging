@@ -39,7 +39,7 @@ my $new_password = generate_password();
 
 # Save the new password to a backup file before proceeding
 my $backup_file = $backup || "/var/spool/koha/suomifi_password_backup.txt";
-open my $fh, '>', $backup_file or warn "Could not open $backup_file for writing: $!";
+open my $fh, '>', $backup_file or die "Could not open $backup_file for writing: $!";
 print $fh "$new_password\n" if $fh;
 close $fh if $fh;
 print "New password backed up to $backup_file\n" if $verbose;
