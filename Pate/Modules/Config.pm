@@ -100,7 +100,7 @@ sub countryCode {
         'tanska' => 'DK',
         'denmark' => 'DK'
     );
-    $country = lc($country);
+    $country = defined($country) ? lc($country) : '';
     $country =~ s/^\s+|\s+$//g;
     return $countryCodes{$country} // 'FI';
 }
