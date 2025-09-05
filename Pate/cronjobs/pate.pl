@@ -6,7 +6,7 @@ use utf8;
 # use Data::Dumper;
 use POSIX qw ( strftime );
 
-use C4::Letters qw ( GetPrintMessages GetSuomiFiMessages );
+use C4::Letters qw ( GetPrintMessages );
 use C4::Context;
 use Try::Tiny;
 
@@ -23,6 +23,7 @@ use Pate::Modules::Config;
 use Pate::Modules::SendMessages;
 
 use Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database;
+use Koha::Notice::Messages;
 
 use PDF::API2;
 
@@ -63,8 +64,9 @@ unless ( $ARGV[0] ) {
 }
 
 elsif ( $ARGV[0] eq '--suomifi' ) {
-
-    foreach my $message ( @{ GetSuomiFiMessages() } ) {
+    my $GetSuomiFiMessages = Koha::Notice::Messages->search({message_transport_type => 'suomifi', status => 'pending'});
+    foreach my $message ( @{ $GetSuomiFiMessages->unblessed } ) {
+        $message->{branchcode} = Koha::Patrons->find($message->{borrowernumber})->branchcode;
         $letters++;
 
         my $branchconfig = find_branchconfig('suomifi', $message);
