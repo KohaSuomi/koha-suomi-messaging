@@ -15,7 +15,7 @@ use Try::Tiny;
 
 my $dbh = C4::Context->dbh;
 $dbh->do("INSERT IGNORE INTO message_transport_types (message_transport_type) VALUES ('suomifi');");
-$dbh->do("INSERT IGNORE INTO systempreferences (variable, value) VALUES ('SuomiFiMessaging', '1');");
+$dbh->do("INSERT IGNORE INTO systempreferences (variable, value) VALUES ('SuomiFiMessaging', '0');");
 
 my $message_transports = $dbh->selectall_arrayref("SELECT message_attribute_id, message_transport_type, is_digest, letter_module, letter_code FROM message_transports WHERE letter_module in ('circulation', 'reserves') GROUP BY message_attribute_id, letter_code");
 
