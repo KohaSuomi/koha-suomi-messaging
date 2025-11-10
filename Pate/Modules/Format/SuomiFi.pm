@@ -98,10 +98,10 @@ sub RESTMessage {
     my $ssndb = Koha::Plugin::Fi::KohaSuomi::SsnProvider::Modules::Database->new();
     my $id = $ssndb->getSSNByBorrowerNumber ( $param{'borrowernumber'} ) || $param{'id'};
     my $config = Pate::Modules::Config->new({ interface => 'suomifi', branch => $param{'branchconfig'} });
+    my $costPool = Pate::Modules::Config->new({branch => $param{'branchcode'}})->getSuomiFiCostPool();
 
     my $paperMail = {
-        'createCoverPage' => JSON::true,
-        'createAddressPage' => JSON::true,
+        'createAddressPage' => JSON::false,
         'messageServiceType' => 'Normal',
         'colorPrinting' => JSON::false,
         'rotateLandscapePages' => JSON::false,
@@ -139,6 +139,8 @@ sub RESTMessage {
             }
         ]
     };
+
+    $paperMail->{'printingAndEnvelopingService'}->{'costPool'} = $costPool if $costPool;
 
     my $electronic = {
         title => $param{'subject'},
@@ -180,5 +182,6 @@ sub RESTMessage {
     $format_message->{'paperMail'} = $paperMail;
     $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid};
     $format_message->{externalId} = "$param{'message_id'}";
+    print Data::Dumper::Dumper $format_message;
     return $format_message;
 }

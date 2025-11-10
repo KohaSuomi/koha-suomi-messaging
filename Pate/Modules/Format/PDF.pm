@@ -12,6 +12,7 @@ use Koha::Libraries;
 
 use C4::Letters;
 use Data::Dumper;
+use Pate::Modules::Config;
 
 use PDF::API2;
 use PDF::API2::Simple;
@@ -55,14 +56,23 @@ sub toPDF {
     my $font_size="12";
 
     ### HEADER ####
+    my $config = Pate::Modules::Config->new({branch => $param{'branchcode'}});
+    my $alt_sender = $config->getSuomiFiAltSender;
+    if ($alt_sender) {
+        # Use alternative sender
+        $pdf->text($alt_sender->[0] || '', autoflow => 'on', font_size=>"$font_size");
+        $pdf->text($alt_sender->[1] || '', autoflow => 'on', font_size=>"$font_size");
+        $pdf->text($alt_sender->[2] || '', autoflow => 'on', font_size=>"$font_size");
+        $pdf->text($alt_sender->[3] || '', autoflow => 'on', font_size=>"$font_size");
+    } else {
+        # For now we'll put branch information as sender, change later to support combine across branches
+        my $branch = Koha::Libraries->find( $param{'branchcode'} );
 
-    # For now we'll put branch information as sender, change later to support combine across branches
-    my $branch = Koha::Libraries->find( $param{'branchcode'} );
-
-    $pdf->text($branch->branchname, autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($branch->branchaddress1, autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($branch->branchzip . ' ' . $branch->branchcity, autoflow => 'on', font_size=>"$font_size");
-    $pdf->text($branch->branchphone, autoflow => 'on', font_size=>"$font_size");
+        $pdf->text($branch->branchname, autoflow => 'on', font_size=>"$font_size");
+        $pdf->text($branch->branchaddress1, autoflow => 'on', font_size=>"$font_size");
+        $pdf->text($branch->branchzip . ' ' . $branch->branchcity, autoflow => 'on', font_size=>"$font_size");
+        $pdf->text($branch->branchphone, autoflow => 'on', font_size=>"$font_size");
+    }
 
     # Insert date in the correct location
     my $letterdate = output_pref ( { dt => dt_from_string(), dateonly => 1 } );

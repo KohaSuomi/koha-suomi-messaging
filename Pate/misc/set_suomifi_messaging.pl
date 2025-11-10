@@ -16,6 +16,8 @@ use Try::Tiny;
 my $dbh = C4::Context->dbh;
 $dbh->do("INSERT IGNORE INTO message_transport_types (message_transport_type) VALUES ('suomifi');");
 $dbh->do("INSERT IGNORE INTO systempreferences (variable, value) VALUES ('SuomiFiMessaging', '0');");
+$dbh->do("INSERT IGNORE INTO systempreferences (variable, value, explanation, type) VALUES ('SuomiFiAltSender', '', 'Enable SuomiFi alternative sender, yaml format. Maximum 4 rows are shown per sender', 'Textarea');");
+$dbh->do("INSERT IGNORE INTO systempreferences (variable, value, explanation, type) VALUES ('SuomiFiCostPool', '', 'Add costPool to SuomiFi REST, yaml format. Branch/part of branch: costPool value (1-15 only capital letters or numbers)', 'Textarea');");
 
 my $message_transports = $dbh->selectall_arrayref("SELECT message_attribute_id, message_transport_type, is_digest, letter_module, letter_code FROM message_transports WHERE letter_module in ('circulation', 'reserves') GROUP BY message_attribute_id, letter_code");
 

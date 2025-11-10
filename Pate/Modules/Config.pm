@@ -2,6 +2,7 @@ package Pate::Modules::Config;
 
 use Modern::Perl;
 use C4::Context;
+use YAML::XS;
 
 sub new {
     my ($class, $params) = @_;
@@ -84,6 +85,91 @@ sub getFileTransferConfig {
         'protocol'  => $self->rootConfig()->{'filetransfer'}->{'protocol'},
 
     };
+}
+
+=head2
+
+# Example usage of getSuomiFiAltSender:
+#
+# my $config = Pate::Modules::Config->new({
+#     branch    => 'branch_id',
+# });
+# my $alt_sender = $config->getSuomiFiAltSender;
+# print "Alt sender for branch: $alt_sender\n";
+# If $alt_sender is an arrayref, print up to 4 rows:
+    if (ref($alt_sender) eq 'ARRAY') {
+        my @rows = @$alt_sender;
+        @rows = @rows[0..3] if @rows > 4;
+        print "Alt sender rows:\n";
+        print "$_\n" for @rows;
+    }
+#
+# This method returns the alternative sender value for the given branch, as defined in the
+# SuomiFiAltSender system preference (YAML format). If no match is found, it returns undef.
+
+=cut
+
+sub getSuomiFiAltSender {
+    my ($self) = @_;
+    
+    my $library_id = $self->{branch};
+    my $config = C4::Context->preference('SuomiFiAltSender');
+
+    return unless $config;
+
+    my $yaml = eval { YAML::XS::Load($config) };
+    return if $@ || ref($yaml) ne 'HASH';
+    
+    foreach my $branch (keys %$yaml) {
+        if ($library_id eq $branch || $library_id =~ /\Q$branch\E/) {
+            return $yaml->{$branch};
+        }
+    }
+
+    if (exists $yaml->{default}) {
+        return $yaml->{default};
+    }
+
+    return;
+}
+
+=head2 
+
+# Example usage of getSuomiFiCostPool:
+#
+# my $config = Pate::Modules::Config->new({
+#     branch    => 'branch_id',
+# });
+# my $cost_pool = $config->getSuomiFiCostPool;
+# print "Cost pool for branch: $cost_pool\n";
+#
+# This method returns the cost pool value for the given branch, as defined in the
+# SuomiFiCostPool system preference (YAML format). If no match is found, it returns undef.
+
+=cut
+
+sub getSuomiFiCostPool {
+    my ($self) = @_;
+
+    my $library_id = $self->{branch};
+    my $config = C4::Context->preference('SuomiFiCostPool');
+
+    return unless $config;
+
+    my $yaml = eval { YAML::XS::Load($config) };
+    return if $@ || ref($yaml) ne 'HASH';
+
+    foreach my $branch (keys %$yaml) {
+        if ($library_id eq $branch || $library_id =~ /\Q$branch\E/) {
+            my $value = $yaml->{$branch};
+            if (defined $value && $value =~ /^[A-Z0-9]+$/) {
+                return $value;
+            } else {
+                return;
+            }
+        }
+    }
+    return;
 }
 
 sub countryCode {
