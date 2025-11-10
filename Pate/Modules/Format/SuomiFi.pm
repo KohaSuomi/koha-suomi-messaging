@@ -182,6 +182,5 @@ sub RESTMessage {
     $format_message->{'paperMail'} = $paperMail;
     $format_message->{sender}->{serviceId} = $config->getRESTConfig->{serviceid};
     $format_message->{externalId} = "$param{'message_id'}";
-    print Data::Dumper::Dumper $format_message;
     return $format_message;
 }
