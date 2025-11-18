@@ -57,7 +57,8 @@ sub toPDF {
 
     ### HEADER ####
     my $config = Pate::Modules::Config->new({branch => $param{'branchcode'}});
-    my $alt_sender = $config->getSuomiFiAltSender;
+    my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
+    my $alt_sender = $config->getSuomiFiAltSender( $borrower->lang );
     if ($alt_sender) {
         # Use alternative sender
         $pdf->text($alt_sender->[0] || '', autoflow => 'on', font_size=>"$font_size");
@@ -89,7 +90,6 @@ sub toPDF {
 
     # Get and insert the recipient information
     # my $borrower = GetMember( borrowernumber => $param{'borrowernumber'} );
-    my $borrower = Koha::Patrons->find( $param{'borrowernumber'} );
 
     $pdf->text($borrower->firstname . ' ' . $borrower->surname, autoflow => 'on', font_size=>"$font_size");
     $pdf->text('', autoflow => 'on', font_size=>"$font_size");

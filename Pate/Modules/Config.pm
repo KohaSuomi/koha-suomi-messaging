@@ -3,6 +3,8 @@ package Pate::Modules::Config;
 use Modern::Perl;
 use C4::Context;
 use YAML::XS;
+use utf8;
+use Encode qw(decode encode);
 
 sub new {
     my ($class, $params) = @_;
@@ -94,38 +96,51 @@ sub getFileTransferConfig {
 # my $config = Pate::Modules::Config->new({
 #     branch    => 'branch_id',
 # });
-# my $alt_sender = $config->getSuomiFiAltSender;
+# my $alt_sender = $config->getSuomiFiAltSender( $lang );
 # print "Alt sender for branch: $alt_sender\n";
-# If $alt_sender is an arrayref, print up to 4 rows:
-    if (ref($alt_sender) eq 'ARRAY') {
-        my @rows = @$alt_sender;
-        @rows = @rows[0..3] if @rows > 4;
-        print "Alt sender rows:\n";
-        print "$_\n" for @rows;
-    }
-#
 # This method returns the alternative sender value for the given branch, as defined in the
 # SuomiFiAltSender system preference (YAML format). If no match is found, it returns undef.
 
 =cut
 
 sub getSuomiFiAltSender {
-    my ($self) = @_;
+    my ($self, $lang) = @_;
     
     my $library_id = $self->{branch};
     my $config = C4::Context->preference('SuomiFiAltSender');
 
     return unless $config;
-
-    my $yaml = eval { YAML::XS::Load($config) };
-    return if $@ || ref($yaml) ne 'HASH';
+    my $encoded_config = encode('UTF-8', $config);
+    my $yaml = eval { YAML::XS::Load($encoded_config) };
     
+    if ($@ ) {
+        print "YAML load error: $@\n";
+        return;
+    }
+    if (ref($yaml) ne 'HASH') {
+        print "YAML is not a hash reference\n";
+        return;
+    }
+
+    # First try to find matching language section
+    foreach my $lang_key (keys %$yaml) {
+        if (defined $lang && $lang ne "default" && $lang eq $lang_key) {
+            my $lang_section = $yaml->{$lang_key};
+            last if ref($lang_section) ne 'HASH';
+            foreach my $branch (keys %$lang_section) {
+                if ($library_id eq $branch || $library_id =~ /\Q$branch\E/) {
+                    return $lang_section->{$branch};
+                }
+            }
+        }
+    }
+    # Then try to find matching branch section without language
     foreach my $branch (keys %$yaml) {
         if ($library_id eq $branch || $library_id =~ /\Q$branch\E/) {
             return $yaml->{$branch};
         }
     }
-
+    # Then try to find default section
     if (exists $yaml->{default}) {
         return $yaml->{default};
     }
@@ -157,7 +172,14 @@ sub getSuomiFiCostPool {
     return unless $config;
 
     my $yaml = eval { YAML::XS::Load($config) };
-    return if $@ || ref($yaml) ne 'HASH';
+    if ($@ ) {
+        print "YAML load error: $@\n";
+        return;
+    }
+    if (ref($yaml) ne 'HASH') {
+        print "YAML is not a hash reference\n";
+        return;
+    }
 
     foreach my $branch (keys %$yaml) {
         if ($library_id eq $branch || $library_id =~ /\Q$branch\E/) {
