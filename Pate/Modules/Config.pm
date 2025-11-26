@@ -126,11 +126,15 @@ sub getSuomiFiAltSender {
     foreach my $lang_key (keys %$yaml) {
         if (defined $lang && $lang ne "default" && $lang eq $lang_key) {
             my $lang_section = $yaml->{$lang_key};
-            last if ref($lang_section) ne 'HASH';
-            foreach my $branch (keys %$lang_section) {
-                if ($library_id eq $branch || $library_id =~ /\Q$branch\E/) {
-                    return $lang_section->{$branch};
+            if (ref($lang_section) eq 'HASH') {
+                foreach my $branch (keys %$lang_section) {
+                    if ($library_id eq $branch || $library_id =~ /\Q$branch\E/) {
+                        return $lang_section->{$branch};
+                    }
                 }
+            } else {
+                # If the lang section is not a hash, return it directly
+                return $lang_section;
             }
         }
     }
