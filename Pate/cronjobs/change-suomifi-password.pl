@@ -42,10 +42,10 @@ my $config = Pate::Modules::Config->new({
     branch => $branchcode,
 });
 
-unless ($test_password) {
-    # Generate and store the new password in a file for recovery if needed
-    my $new_password = generate_password();
+# Generate and store the new password in a file for recovery if needed
+my $new_password = generate_password();
 
+unless ($test_password) {
     # Save the new password to a backup file before proceeding
     my $backup_file = $backup || "/var/spool/koha/suomifi_password_backup.txt";
     open my $fh, '>', $backup_file or die "Could not open $backup_file for writing: $!";
