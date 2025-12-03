@@ -15,6 +15,7 @@ my $branchcode = 'default';
 my $old_password;
 my $write_config = 0;
 my $backup;
+my $test_password = 0;
 
 GetOptions(
     'help' => \$help,
@@ -22,33 +23,42 @@ GetOptions(
     'branchcode=s' => \$branchcode,
     'old_password=s' => \$old_password,
     'write_config' => \$write_config,
-    'backup=s' => \$backup
+    'backup=s' => \$backup,
+    'test_password' => \$test_password
 );
 
 if ($help) {
-    print "Usage: $0 [--branchcode=BRANCHCODE] [--old_password=OLD_PASSWORD] [--write_config] [--backup=BACKUP]\n";
-    exit;
+    print "Usage: $0 [--branchcode=BRANCHCODE] [--old_password=OLD_PASSWORD] [--write_config] [--backup=BACKUP] [--test_password]\n";
+    print "--branchcode: Specify the branch code (default: 'default')\n";
+    print "--old_password: Provide the old password if you want to test it before changing\n";
+    print "--write_config: If set, the new password will be written to the config file\n";
+    print "--backup: Specify a file to back up the new password (default: /var/spool/koha/suomifi_password_backup.txt)\n";
+    print "--test_password: If set, the script will only test the old password without changing it\n";
+    exit 0;
 }
+
 my $config = Pate::Modules::Config->new({
     interface => 'suomifi',
     branch => $branchcode,
 });
 
-# Generate and store the new password in a file for recovery if needed
-my $new_password = generate_password();
+unless ($test_password) {
+    # Generate and store the new password in a file for recovery if needed
+    my $new_password = generate_password();
 
-# Save the new password to a backup file before proceeding
-my $backup_file = $backup || "/var/spool/koha/suomifi_password_backup.txt";
-open my $fh, '>', $backup_file or die "Could not open $backup_file for writing: $!";
-print $fh "$new_password\n" if $fh;
-close $fh if $fh;
-print "New password backed up to $backup_file\n" if $verbose;
+    # Save the new password to a backup file before proceeding
+    my $backup_file = $backup || "/var/spool/koha/suomifi_password_backup.txt";
+    open my $fh, '>', $backup_file or die "Could not open $backup_file for writing: $!";
+    print $fh "$new_password\n" if $fh;
+    close $fh if $fh;
+    print "New password backed up to $backup_file\n" if $verbose;
+}
 
 my $restConfig = $config->getRESTConfig();
 my $password = $old_password || $restConfig->{password};
 my $restClass = Pate::Modules::Deliver::REST->new({baseUrl => $restConfig->{baseUrl}});
 my $cache = Koha::Caches->get_instance();
-my $accessToken = $cache->get_from_cache($config->cacheKey());
+my $accessToken = $test_password ? undef : $cache->get_from_cache($config->cacheKey());
 try {
     unless ($accessToken) {
         print "Fetching a access token\n" if $verbose;
@@ -56,6 +66,10 @@ try {
         $accessToken = $tokenResponse->{access_token};
         #Token should be valid for 5 seconds less than the expiry time
         $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
+    }
+    if ($test_password) {
+        print "The provided old password is correct.\n";
+        exit 0;
     }
     my $response = $restClass->changePassword('/v1/change-password', 'application/json', {accessToken => $accessToken, currentPassword => $password, newPassword => $new_password});
     print "Password changed to $new_password\n" if $verbose;
@@ -65,7 +79,7 @@ try {
         print "Not writing to config file, use --write_config to enable this.\n";
         print "Add the new password to your config file manually.\n";
     }
-    $cache->clear_from_cache($config->cacheKey()); 
+    $cache->clear_from_cache($config->cacheKey());
 } catch {
     print "$_\n";
 };
