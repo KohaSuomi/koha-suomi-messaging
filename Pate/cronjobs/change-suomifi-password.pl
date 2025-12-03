@@ -70,10 +70,10 @@ my $accessToken = $test_password ? undef : $cache->get_from_cache($config->cache
 try {
     unless ($accessToken) {
         print "Fetching a access token\n" if $verbose;
-        # my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $password, username => $restConfig->{username}});
-        # $accessToken = $tokenResponse->{access_token};
-        # #Token should be valid for 5 seconds less than the expiry time
-        # $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
+        my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $password, username => $restConfig->{username}});
+        $accessToken = $tokenResponse->{access_token};
+        #Token should be valid for 5 seconds less than the expiry time
+        $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
     }
     if ($test_password) {
         print "The provided old password is correct.\n";
