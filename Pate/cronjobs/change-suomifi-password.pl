@@ -8,6 +8,7 @@ use Pate::Modules::Config;
 use String::Random qw( random_string );
 use Koha::Caches;
 use XML::LibXML;
+use POSIX qw(strftime);
 
 my $help;
 my $verbose = 0;
@@ -42,6 +43,13 @@ my $config = Pate::Modules::Config->new({
     branch => $branchcode,
 });
 
+my $start_time = strftime "%Y-%m-%d %H:%M:%S", localtime;
+print "Script started at $start_time\n" if $verbose;
+END {
+    my $end_time = strftime "%Y-%m-%d %H:%M:%S", localtime;
+    print "Script ended at $end_time\n" if $verbose;
+}
+
 # Generate and store the new password in a file for recovery if needed
 my $new_password = generate_password();
 
@@ -62,10 +70,10 @@ my $accessToken = $test_password ? undef : $cache->get_from_cache($config->cache
 try {
     unless ($accessToken) {
         print "Fetching a access token\n" if $verbose;
-        my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $password, username => $restConfig->{username}});
-        $accessToken = $tokenResponse->{access_token};
-        #Token should be valid for 5 seconds less than the expiry time
-        $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
+        # my $tokenResponse = $restClass->fetchAccessToken('/v1/token', 'application/json', {password => $password, username => $restConfig->{username}});
+        # $accessToken = $tokenResponse->{access_token};
+        # #Token should be valid for 5 seconds less than the expiry time
+        # $cache->set_in_cache($config->cacheKey(), $accessToken, { expiry => $tokenResponse->{expires_in} - 5 });
     }
     if ($test_password) {
         print "The provided old password is correct.\n";
