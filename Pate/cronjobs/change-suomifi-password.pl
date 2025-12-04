@@ -79,6 +79,7 @@ try {
         print "The provided old password is correct.\n";
         exit 0;
     }
+    sleep 2; #Ensure token is valid
     my $response = $restClass->changePassword('/v1/change-password', 'application/json', {accessToken => $accessToken, currentPassword => $password, newPassword => $new_password});
     print "Password changed to $new_password\n" if $verbose;
     if ($write_config) {
