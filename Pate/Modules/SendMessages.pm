@@ -85,7 +85,7 @@ sub send_suomifi_rest {
     print "Creating the RESTMessage for @$message{'message_id'}\n" if $ENV{'DEBUG'};
     my $messageData = RESTMessage(%{$message}, 'branchconfig' => $config->branchConfig, 'file_id' => $fileResponse->{attachmentId}, id => $self->testID);
     my $response;
-    print "Sending the message $message->{message_id}\n" if $ENV{'DEBUG'};
+    print "Sending the message @$message{'message_id'}\n" if $ENV{'DEBUG'};
     if ($messageData->{recipient}->{id}) {
         $response = $restClass->send('/v2/messages', 'application/json', $accessToken, $messageData);
     } else {
