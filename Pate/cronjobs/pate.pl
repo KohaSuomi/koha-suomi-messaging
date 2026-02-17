@@ -5,8 +5,8 @@ use utf8;
 
 # use Data::Dumper;
 use POSIX qw ( strftime );
+use Getopt::Long qw( GetOptions );
 
-use C4::Letters qw ( GetPrintMessages );
 use C4::Context;
 use Try::Tiny;
 
@@ -52,19 +52,55 @@ unless (C4::Context->config('ksmessaging')) {
     exit 1;
 }
 
-if ( $ARGV[0] eq '--help' || $ARGV[0] eq '-h' ) {
-    print "\nUsage: $0 --letters | --letters-as-suomifi-ipost | --suomifi | --letters-as-suomifi-rest [testihetu]\n\n";
+# Parse command line options
+my $help;
+my $print_letters;
+my $letters_as_suomifi_ipost;
+my $letters_as_suomifi_rest;
+my $suomifi;
+my $testID;
+my $messages;
+
+GetOptions(
+    'help|h'                      => \$help,
+    'letters'                     => \$print_letters,
+    'letters-as-suomifi-ipost'    => \$letters_as_suomifi_ipost,
+    'letters-as-suomifi-rest'     => \$letters_as_suomifi_rest,
+    'suomifi'                     => \$suomifi,
+    'test-id=s'                   => \$testID,
+    'messages=s'                  => \$messages
+) or die("Error in command line arguments\n");
+
+if ( $help ) {
+    print "\nUsage: $0 --letters | --letters-as-suomifi-ipost | --suomifi | --letters-as-suomifi-rest [--test-id=TESTIHETU --messages=MESSAGE_IDS]\n\n";
+    print "Options:\n";
+    print "  --help, -h                    Show this help message\n";
+    print "  --letters                     Process letters\n";
+    print "  --letters-as-suomifi-ipost    Process letters as Suomi.fi iPost messages\n";
+    print "  --letters-as-suomifi-rest     Process letters as Suomi.fi REST messages\n";
+    print "  --suomifi                     Process Suomi.fi messages\n";
+    print "  --test-id=TESTIHETU           Optional test ID (SSN for testing)\n";
+    print "  --messages=234,2345           Optional fetch and process only defined message_ids (good for testing)\n\n";
+    exit 0;
+}
+
+# Check that exactly one mode is selected
+my $mode_count = grep { $_ } ($letters, $letters_as_suomifi_ipost, $letters_as_suomifi_rest, $suomifi);
+unless ( $mode_count == 1 ) {
+    print STDERR "\nError: Select exactly one mode: '--letters', '--letters-as-suomifi-ipost', '--letters-as-suomifi-rest' or '--suomifi'.\n";
+    print STDERR "Run with --help for usage information.\n\n";
     exit 1;
 }
 
-my $testID = $ARGV[1] if ( $ARGV[1] );
-
-unless ( $ARGV[0] ) {
-    print "\nSelect either '--letters', '--letters-as-suomifi-ipost', '--letters-as-suomifi-rest' or '--suomifi'.\n" unless ( $ARGV[0] );
+my $search_term = $suomifi ? {message_transport_type => 'suomifi', status => 'pending'} : {message_transport_type => 'print', status => 'pending'};
+if ($messages) {
+    # Split comma-separated message IDs
+    my @fetch_messages = split(/,/, join(',', $messages));
+    $search_term = {message_id => \@fetch_messages};
 }
 
-elsif ( $ARGV[0] eq '--suomifi' ) {
-    my $GetSuomiFiMessages = Koha::Notice::Messages->search({message_transport_type => 'suomifi', status => 'pending'});
+if ( $suomifi ) {
+    my $GetSuomiFiMessages = Koha::Notice::Messages->search($search_term);
     foreach my $message ( @{ $GetSuomiFiMessages->unblessed } ) {
         $message->{branchcode} = Koha::Patrons->find($message->{borrowernumber})->branchcode;
         $letters++;
@@ -164,10 +200,10 @@ elsif ( $ARGV[0] eq '--suomifi' ) {
     }
 
 }
-elsif ($ARGV[0] eq '--letters-as-suomifi-ipost') {
+elsif ($letters_as_suomifi_ipost) {
     print STDERR "Staging letters as Suomi.fi messages...\n";
-
-    foreach my $message ( @{ GetPrintMessages() } ) {
+    my $GetPrintedMessages = Koha::Notice::Messages->search($search_term);
+    foreach my $message ( @{ $GetPrintedMessages->unblessed } ) {
         # Skip defined letter_codes from the process
         if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
             next if skip_letters($message);
@@ -189,10 +225,10 @@ elsif ($ARGV[0] eq '--letters-as-suomifi-ipost') {
         sleep(1);
     }
 }
-elsif ($ARGV[0] eq '--letters-as-suomifi-rest') {
+elsif ($letters_as_suomifi_rest) {
     print STDERR "Staging letters as Suomi.fi REST messages...\n";
-    
-    foreach my $message ( @{ GetPrintMessages() } ) {
+    my $GetPrintedMessages = Koha::Notice::Messages->search($search_term);
+    foreach my $message ( @{ $GetPrintedMessages->unblessed } ) {
         # Skip defined letter_codes from the process
         if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
             next if skip_letters($message);
@@ -213,10 +249,10 @@ elsif ($ARGV[0] eq '--letters-as-suomifi-rest') {
         sleep(1);
     }
 }
-elsif ( $ARGV[0] eq '--letters' ) {
+elsif ( $print_letters ) {
     print STDERR "Staging letters...\n";
-
-    foreach my $message ( @{ GetPrintMessages() } ) {
+    my $GetPrintedMessages = Koha::Notice::Messages->search($search_term);
+    foreach my $message ( @{ $GetPrintedMessages->unblessed } ) {
         # Skip defined letter_codes from the process
         if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
             my $skipletter = 0;
