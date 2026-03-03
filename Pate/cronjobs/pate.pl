@@ -208,6 +208,7 @@ elsif ($letters_as_suomifi_ipost) {
         if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
             next if skip_letters($message);
         }
+        $message->{branchcode} = Koha::Patrons->find($message->{borrowernumber})->branchcode;
         $letters++;
         try {
             my $sendMessages = Pate::Modules::SendMessages->new({interface => 'suomifi', branch => @$message{'branchcode'}, method => 'ipost_pdf', testID => $testID});
@@ -233,6 +234,7 @@ elsif ($letters_as_suomifi_rest) {
         if ( C4::Context->config('ksmessaging')->{'letters'}->{'skipletters'} ) {
             next if skip_letters($message);
         }
+        $message->{branchcode} = Koha::Patrons->find($message->{borrowernumber})->branchcode;
         $letters++;
         try {
             my $sendMessages = Pate::Modules::SendMessages->new({interface => 'suomifi', branch => @$message{'branchcode'}, method => 'suomifi_rest', testID => $testID});
@@ -265,6 +267,7 @@ elsif ( $print_letters ) {
             }
             next if $skipletter;
         }
+        $message->{branchcode} = Koha::Patrons->find($message->{borrowernumber})->branchcode;
         $letters++;
         # Combining will happen here
 
