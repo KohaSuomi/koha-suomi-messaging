@@ -91,6 +91,7 @@ sub send_suomifi_rest {
     } else {
         $response = $restClass->send('/v2/paper-mail-without-id', 'application/json', $accessToken, $messageData);
     }
+    print "Message sent with response: " . Data::Dumper::Dumper($response) . "\n" if $ENV{'DEBUG'};
     return 1;
 }
 
