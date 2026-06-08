@@ -85,7 +85,7 @@ if ( $help ) {
 }
 
 # Check that exactly one mode is selected
-my $mode_count = grep { $_ } ($letters, $letters_as_suomifi_ipost, $letters_as_suomifi_rest, $suomifi);
+my $mode_count = grep { $_ } ($print_letters, $letters_as_suomifi_ipost, $letters_as_suomifi_rest, $suomifi);
 unless ( $mode_count == 1 ) {
     print STDERR "\nError: Select exactly one mode: '--letters', '--letters-as-suomifi-ipost', '--letters-as-suomifi-rest' or '--suomifi'.\n";
     print STDERR "Run with --help for usage information.\n\n";
