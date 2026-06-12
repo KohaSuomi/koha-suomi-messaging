@@ -82,6 +82,7 @@ sub send_suomifi_rest {
     $filename = $config->stagingDir() . '/' . $filename;
     print "Sending the file: $filename\n";
     my $fileResponse = $restClass->send('/v2/attachments', 'form-data', $accessToken, $filename);
+    print "File uploaded with response: " . Data::Dumper::Dumper($fileResponse) . "\n" if $ENV{'DEBUG'};
     print "Creating the RESTMessage for @$message{'message_id'}\n" if $ENV{'DEBUG'};
     my $messageData = RESTMessage(%{$message}, 'branchconfig' => $config->branchConfig, 'file_id' => $fileResponse->{attachmentId}, id => $self->testID);
     my $response;
