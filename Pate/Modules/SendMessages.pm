@@ -86,10 +86,11 @@ sub send_suomifi_rest {
     print "Creating the RESTMessage for @$message{'message_id'}\n" if $ENV{'DEBUG'};
     my $messageData = RESTMessage(%{$message}, 'branchconfig' => $config->branchConfig, 'file_id' => $fileResponse->{attachmentId}, id => $self->testID);
     my $response;
-    print "Sending the message @$message{'message_id'}\n" if $ENV{'DEBUG'};
     if ($messageData->{recipient}->{id}) {
+        print "Sending the message @$message{'message_id'} with recipient ID\n" if $ENV{'DEBUG'};
         $response = $restClass->send('/v2/messages', 'application/json', $accessToken, $messageData);
     } else {
+        print "No recipient ID found for message @$message{'message_id'}, sending without recipient\n" if $ENV{'DEBUG'};
         $response = $restClass->send('/v2/paper-mail-without-id', 'application/json', $accessToken, $messageData);
     }
     print "Message sent with response: " . Data::Dumper::Dumper($response) . "\n" if $ENV{'DEBUG'};
