@@ -98,7 +98,7 @@ sub generate_password {
     my $password;
     do {
         $password = $random->randpattern("CCcc!n" x 8); # 8 sets of upper, lower, symbol, and number
-    } while ($password =~ /[&<>'"]/); # Regenerate if it contains an ampersand, less than, or greater than symbol or a single quote or double quote
+    } while ($password =~ /[&<>'"\\\/]/); # Regenerate if it contains an ampersand, less than, or greater than symbol or a single quote or double quote or backslash or forward slash
     return $password;
 }
 
